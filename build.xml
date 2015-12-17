@@ -1,0 +1,32 @@
+<project name="moustrap" default="jar" basedir=".">
+
+ <property name="src" location="src"/>
+ <property name="build" location="classes"/>
+ <property name="lib" location="lib"/>
+ 
+<target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${lib}"/>
+    <mkdir dir="${build}"/>   
+</target>
+
+<target name="compile" depends="init"
+        description="Compile the Java source code">
+  <!-- Compile the java code from ${src} into ${build} -->
+  <javac srcdir="${src}" destdir="${build}"
+	 includes="mousetrap/**"  optimize="on"
+	 debug="on" debuglevel="lines,vars,source"
+	 includeantruntime="false" >
+    <compilerarg value="-Xlint:unchecked"/>
+    <!-- classpath refid="classpath"/ -->
+  </javac>
+</target>
+
+<target name="jar" depends="compile"       description="Builds a Jar file">
+  <jar destfile="${lib}/mousetrap.jar"   basedir="${build}">
+  </jar>
+</target>
+
+</project>
