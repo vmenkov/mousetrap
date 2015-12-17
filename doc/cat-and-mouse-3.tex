@@ -1,0 +1,417 @@
+\documentclass[12pt]{article}
+
+\usepackage{amssymb,amsmath,amsthm,xspace}
+\usepackage{ulem}
+
+\newcommand{\inorm}[1]{\left\|{#1}\right\|_\infty}     
+
+\newtheorem{proposition}{Proposition}
+
+\begin{document}
+
+\title{Notes on the Cat and Mouse problem}
+\date{December 6, 2015}
+\author{Vladimir Menkov}
+
+\maketitle
+
+\section{Notation}
+\label{sec:notation}
+
+Paul --- here I am formalizing your notation somewhat.
+
+Here we somewhat generalize the problem described in Paul's note. The Cat and Mouse operate in a room with $H=|\cal{H}|$ entry holes; $\cal{H}$ is the set of the holes, e.g., in Paul's 3-wall example, ${\cal{H}}=\{L,C,R\}$.
+
+The rules of a particular game determine how the Mouse can move between the holes.  For each hole $A\in \cal{H}$ let  $W(A)$ be the set of holes to which the Mouse can move at the next step after being at $A$ at the current step. ($W(A)$ may or may not include $A$ itself, depending on a particular game's rules). In Paul's 3-wall example, $W(C)=\{L,C,R\}$, $W(L)=\{L,R\}$, and $W(R)=\{C,R\}$.
+
+As an aside, let us note that the sparsity pattern of $P$ required by a particular game's geometry may not necessarilt be symmetric. It is possible to to have a game with rules that allow the Mouse to move from hole $X$ to hole $Y$, but not from $Y$ to $X$. As a simply example, imagine the an airport shuttle train that runs clockwise in a loop, with stations (``holes'') numbered 0 through $H-1$. At each step, the Mouse can choose to stay at its current hole $i$ or move to the next hole, $i' = (i+1) \mod 1$; thus for each $i$, $W(i)=\{i, (i+1) \mod 1\}$.
+
+At each step (``one hour'', as in Paul's intro), the mouse takes action $x\in\cal{H}$, the cat, action  $y\in\cal{H}$. With the detection rate $\phi$ ($0\le\phi\le 1$), the expected payoff for the mouse on this step is, as per Paul's first table, 
+$$
+V(x,y)=1 - \phi \delta_{xy},
+$$
+where $\delta_{xy}$ is a Kronecker symbol.    
+
+For a sequence of the players' actions, $\{(x_1,y_1), (x_2,y_2), \ldots, (x_n,y_n)$, one can define the overall payoff of the game for the mouse as
+$$
+V^{\rm{undicscounted}}(\{(x_1,y_1),  \ldots, (x_n,y_n)\}) =
+\sum_{i=1,\cdots,n} (1 - \phi \delta_{xy}).
+$$
+However, it may be convenient for us to consider optimizing the cat's and mouse's strategies on a game of an indefinite length --- which is mathematically convenient to view as infinite. To handle this, it is convenient to use ``discounted payoff'',
+$$
+V(\{(x_1,y_1),  \ldots, (x_n,y_n)\}) =
+\sum_{i=1,\cdots,n} r^{i-1} (1 - \phi \delta_{xy}),
+$$
+where $r$ ($0<r<1$) is the discount rate. The value of the discount rate reflects how important the success on future steps is to the players, as compared to the success at the current step.
+
+Using the discount rate approach appears to give us qualitatively similar results to what Paul's approach, with ``1/2'', give.
+
+\section{Assumptions on strategies} 
+\label{sec:pq}
+
+Following Paul's assumptions, we assume that both the Cat's and the
+Mouse's actions are chosen randomly at each step, with the probability
+distribution determined only the Mouse's previous step. What does this
+assumption mean:
+\begin{itemize}
+
+\item The dependence on the Mouse's previous step allows us to impose the restrictions on the Mouse's movements (e.g., as in Paul's model, from L, it  only can go to L or C on the next step, but not to R).
+
+\item The Mouse has no memory of its actions farther back than the previous step.
+
+\item The Mouse does not use any information about the Cat's previous actions for its own decision-making. This means our model would not be optimal for a game where the Cat has restrictions on its movement; but in the model like Paul's it's probably OK, since a smart Cat would not want to pursue a strategy which, when observed by the Mouse, would make Mouse more efficient.
+
+\item The Cat is aware of the Mouse's previous move, but does not have a memory of his actions, nor of the Mouse's older activity than the previous step (or does not care to use them, in assumption that being too predictable is not good for him, nor that Mouse would want to be too predictable).
+\end{itemize}
+
+With this assumption, the Mouse's strategy can be fully described by its initial action, $x_0$, and the $H \times H$ {\bf transition matrix} $P$, in which $p^k_j$ is the probability of the Mouse's choosing hole $j$ after hole $k$ was played on the previous step. This being a probability matrix, it has to consist of non-negative values, and satisfy the constraint
+\begin{equation}
+\label{eq:pe}
+P e= e
+\end{equation}
+(with $e = [1 \cdots 1 ]^T \in R^H$ being a vector of all ones). 
+
+When the game description imposes constraints on the Mouse's movements, they can be expressed in terms of additional constraints on the sparsity pattern of matrix $P$: the $p^j_k$ may be a non-zero only if $k\in W(j)$. For example, in Paul's three-wall room model, $P^L_R=P^R_L=0$.
+
+We will use the notation $\cal{P}$ for the set of matrices $P$ that are legal Mouse transition matrices under a given game's geometry.
+
+The Cat's strategy can be similarly described by the  $H \times H$ {\bf reaction matrix} $Q$,  in which $q^k_j$ is the probability of the Cat's playing hole $j$ after hole $k$ has been played by the Mouse on the previous step. Similarly to $P$, the reaction matrix $Q$ also must consist of non-negative elements, with 
+\begin{equation}
+\label{eq:qe}
+Q e= e.
+\end{equation}
+
+Since our game rules impose no constraints on the Cat's movements between steps, there are no additional constraints on the values of the elements of $Q$. We will use notation $\cal{Q}$ for the set of all legal matrices $Q$ for the given $H$.
+
+
+\section{Payoff expectation}
+In an infinite game starting with the Mouse and Cat playing $x$ and $y$ on the first step, let $F(k,l)$ be the expectation of the Mouse's payoff of the game that starts with the two playing $k$ and $l$, and continuing indefinitely based on randomized strategies driven by the matrices $P$ and $Q$. The following recurrence holds (similar to Paul's eq. (1)),
+\begin{equation}
+\label{eq:f1}
+F(k,l) \equiv E[V((x_1=x,y_1=y),(x_2,y_2),\ldots)] = 1 - \phi \delta_{kl} + r \sum_{j,m \in \cal{H}} p^k_j q^k_m F(j,m)
+\end{equation}
+
+Here, the first part ($1 - \phi \delta_{kl}$) represents the payoff at the first step, and the remaining sum represents the expectation of the (discounted) payoff on the subsequent steps.
+
+Since, by our assumptions, the Cat's current action $l$ only matters at the current step and not on the future steps, --- which is reflected in the above recurrence --- it will simplify computations if we to think in terms of 
+$$
+g_k \equiv F(k, l)  \quad {\rm with} \quad k\ne l.
+$$
+That is, $F(k,l) = g_k - \phi \delta_{kl}$.  This allows us to simplify the recurrence as
+$$
+g_k = 1  + r \sum_{j,m \in \cal{H}} p^k_j q^k_m  (g_j - \phi\delta_{jm})
+$$
+Thanks to (\ref{eq:qe}), this simplifies to
+\begin{equation}
+\label{eq:g2}
+g_k = 1  + r \sum_{j\in \cal{H}} p^k_j g_j -  
+r \phi \sum_{j\in \cal{H}}p^k_j q^k_j
+\end{equation}
+This gives us the following matrix equation for the vector
+$g = [g_1, \cdots, g_h]^T \in \cal{H}$:
+\begin{equation}
+\label{eq:g3}
+(I - rP) g = e - r \phi [ p^1 {q^1}^T, \cdots, p^h {q^h}^T]^T,
+\end{equation}
+or
+\begin{equation}
+\label{eq:g4a}
+g = (I - rP)^{-1} ( e - r \phi [ p^1 {q^1}^T, \cdots, p^h {q^h}^T]^T ).
+\end{equation}
+
+Here, $p^j$ and $q^j$ are the $j$-th rows of the matrices $P$ and $Q$, respectively; thus, $p^j {q^j}^T$ is the dot product of these respective $j$-th rows.
+
+Due to constraint (\ref{eq:pe}), we know that $e$ is an eigenvector of $P$,
+and $(I - rP)^{-1} e  = \frac{1}{1-r} e$. Thus  (\ref{eq:g4a}) can be rewritten as
+\begin{equation}
+\label{eq:g4}
+g = \frac{1}{1 - r} e - r \phi (I-rP)^{-1}  [ p^1 {q^1}^T, \cdots, p^h {q^h}^T]^T.
+\end{equation}
+
+\section{Optimizing payoff expectation}
+If the Cat and Mouse start the game with the Mouse playing hole $k$, then, being savvy of the standard game theory minimax approach, they'll be looking for $P$ and $Q$ that produce
+\begin{equation}
+\label{eq:mm}
+\max_{P\in\cal{P}} \min_{Q\in\cal{Q}} g_k,
+\end{equation}
+with $g_k$ being the $k$-th component of vector $g$ given by eq. (\ref{eq:g4}) with the appropriate $P$ and $Q$.
+
+The following propostion will be helpful in optimization analysis:
+
+\begin{proposition}
+\label{prop:inv}
+For any legal transition matrix $P$, and for any discount rate $r$ ($0<r<1$), all elements of the matix $(I - rP)^{-1}$ are non-negative. Moreover, all of its diagonal elements are no smaller than 1.0.
+\end{proposition}
+\begin{proof}
+This can be easily shown by representing  $(I - rP)^{-1}$ with a converging Taylor series,  
+$$
+(I - rP)^{-1} = I + \sum_{n=1}^\infty r^n P^n,
+$$ 
+with matrix $P$ whose elements are all non-negative. (The convergence of the series for any $r$ with $|r|<1$ can be shown e.g. based on the bound on the matrix norm, $\|P\|\le 1$ for a matrix norm induced by the  vector 2-norm).
+\end{proof}
+
+{\bf The Cat-side optimization} is quite simple. Due to Proposition \ref{prop:inv}, given a particular $P$, minimizing all $g_k$ given by (\ref{eq:g4}) with respect to $Q$ is equivalent to maximizing all dot products $p^j {q^j}^T = \sum_k p^j_k q^j_k$. Remembering that $\sum_k q^j_k=1$, we can see that the dot product is maximized when the reaction matrix elements $q^j_k$ are non-zeros for those $k$ for which the value of $p^j_k$ is the largest in its row:
+\begin{equation}
+\label{eq:qopt}
+q^j_k  
+\left\{ \begin{matrix}
+ = 0           & \quad   {\rm if} \quad &  p^j_k < \max_{k'} p^j_{k'}  \\
+ > 0   & \quad {\rm if}   \quad &  p^j_k = \max_{k'} p^j_{k'}.
+\end{matrix} \right.
+\end{equation}
+That is, the Cat only should watch over the hole (or holes) that the Mouse is most likely to play. 
+
+(That is, if there is a single maximum $p^j_k$, such that $p^j_k >p^j_{k'}$ for all $k' \ne k$, then the Cat should pay its undivided attention to hole $k$, by setting $q^j_k=1$; if the row $p^j$ has several equal maximum elements with the value $c=\max_k p^j_k$, then the cat should have $q^j_k > 0$ --- not important in which way exactly --- only on those $k$ for which $p^j_k=c$; due to constraint (\ref{eq:pe}), these non-zero values must sum to 1.) 
+
+This result, of course, is fairly obvious intuitively.
+
+{\bf The Mouse-side optimization} is more complicated. Substututing the Cat's optimal $Q$ into  (\ref{eq:g4}), we have the following formula for the saddle-point payoff:
+\begin{equation}
+\label{eq:g6}
+g =  \frac{1}{1 - r}  - r \phi \min_P (I - rP)^{-1} s(P), \quad 
+{\rm where} \quad s(P) \equiv \left[ \inorm{p^1}, \cdots, \inorm{p^h}\right]^T.
+\end{equation}
+($g$ being a vector, the maximization in (\ref{eq:g6}) above is component-wise;  in principle, it may need to be done individually for each $g_k$).
+
+Here, we use the infinity-norm notation for the $j$-th row of $P$,  
+$$s_k(P) \equiv \inorm{p^j} \equiv \max_k p^j_k.
+$$
+(Since the values of matrix elements are non-negative, we don't have to use the absolute value notation).
+
+The rest of this document is concerned with solving the optimization problem (\ref{eq:g6}).
+
+\section{Mouse-side optimization: preliminaries}
+To optimize the components of the Mouse payoff vector $g$ in (\ref{eq:g6}), the following formula for the difference between the vectors $g(P)$ obatined at different $P$:
+$$
+g(P) - g(P_0) =   - r \phi \left[
+ (I - rP)^{-1} s(P) - (I - rP_0)^{-1} s(P_0) \right],
+$$
+which can be rewritten as
+\begin{equation}
+\label{eq:deltag1}
+g(P) - g(P_0) = - r \phi  (I-rP)^{-1} 
+ \left[ (s(P)  - s(P_0)  +  r(P-P_0) (I - rP_0)^{-1}s(P_0)\right].
+\end{equation}
+
+A similar formula obtains for infinitesimal increments of $g$,
+\begin{equation}
+\label{eq:deltag}
+\delta g = -r \phi (I-rP)^{-1} 
+\left[\delta s(P) + r \delta P  (I-rP)^{-1} s(P)\right].
+\end{equation}
+
+Equality (\ref{eq:deltag1}) helps us to find the optimum $g$ for a wide class of problems, as formulated in the following proposition.
+
+\begin{proposition}
+\label{prop:p1}
+If all components of $s(P)$ (defined in (\ref{eq:g6})) are minimized at $P=P_0$, and $s(P_0) = \gamma e$ with some constant $\gamma$, then $P_0$ is also the maximum point for all components of $g(P)$.
+\end{proposition}
+\begin{proof}
+If $s(P_0) = \gamma e$, then, due to constraint (\ref{eq:pe}),  $(I-rP)^{-1} s(P_0) = \frac{1}{1-r}s(P_0)$ for any legal transition matrix $P$. Therefore, the increments given by (\ref{eq:deltag1}) become simply
+\begin{equation}
+\label{eq:deltag2}
+g(P) - g(P_0) = 
+- r \phi  (I - rP)^{-1}  \left[ (s(P)  - s(P_0) \right].
+\end{equation}
+Thanks to Proposition \ref{prop:inv}, equation (\ref{eq:deltag2}) means that if $s_k(P_0) = \min_{P\in\cal{P}} s_k(P)$ for all $k$, then $g_k(P_0) = \max_{P\in\cal{P}} g_k(P)$ for all $k$.
+\end{proof}
+
+\section{Mouse-side optimization: simple examples}
+
+{\bf Example 1: two holes.} In the simplest game example, that of $\cal{H}=\{L, R\}$, and no constraints on the Mouse's movements, it is pretty easy to actually solve problem (\ref{eq:g6}), and obtain the optimum on 
+$$P = \frac{1}{2} e e^T =
+\begin{pmatrix} 
+ 0.5  & 0.5 \\
+ 0.5  & 0.5  
+\end{pmatrix},
+$$
+much as one would expect. 
+
+One can also obtain the same result by applying Proposition \ref{prop:p1}.
+
+(This 2-hole game is, incidentally, equivalent to the well-known game of {\em
+  Matching pennies}.) 
+
+{\bf Example 2: $h$ holes, no movement constraints.} If the Mouse can move from any hole to any other hole at will, it appears intuitively obvious that the best strategy for it is to choose a hole at each step randomly, with equal probability for each hole, i.e. with the transition matrix
+$$
+P=P_0 \equiv \frac{1}{h} ee^T.
+$$
+It is easy to see that this matrix $P=P_0$ minimizes all components of $s(P)$. Since $s(P_0)=\frac{1}{h} e$, Proposition \ref{prop:p1} applies, thus making $P_0$ the maximum point of all components $g(P)$.
+
+If the Mouse plays this strategy, the payoff does not depend on what strategy the Cat plays, since any $Q$ satisfies (\ref{eq:qopt}). In practical terms, the Cat would probably want to use $Q=P_0$, since using it will guarantee the same result regardless of the Mouse's strategy.
+
+With these $P$ and $Q$, the Mouse's expected payoff (\ref{eq:f1}) as 
+\begin{equation}
+\label{eq:payoff:ex2}
+F(k,l) = \frac{1}{1-r} \left(1  - \frac{r\phi}{h}\right) - \delta_{kl}.
+\end{equation}
+
+{\bf Example 3: All holes have the same number of ``neighbors''.} We can generalize the previous example to the following class of geometries. We can show the following: if all sets $W(\cdot)$ (see Sec. \ref{sec:notation} for the notation)
+have the same size  $h'$  (i.e.  $(\exists h') \quad (0<h'\le h) \quad (\forall A) \quad (|W(A)|=h')$), then the maximum for all components of $g(P)$ is achieved at 
+$$
+P=P_0 \equiv \frac{1}{h'} ee^T.
+$$
+
+The proof of optimality of $P_0$ is analogous to that in the previous example, using Proposition \ref{prop:p1}.  The Mouse's expected payoff (\ref{eq:f1}) is given
+\begin{equation}
+\label{eq:payoff:ex3}
+F(k,l) = \frac{1}{1-r} \left(1  - \frac{r\phi}{h'}\right) - \delta_{kl}.
+\end{equation}
+
+One game geometry covered by this example is that of a ``city wall'': a set of $h$ holes $\cal{H}=\{A_0, A_1, \cdots, A_{h-1}\}$ with $W(A_i) = \{A_{(i-1) \mod h}, A_i, A_{(i+1) \mod h}$. In other words, at each step the Mouse can choose one of the $h'=3$ actions: to stay at its current hole or to move  to the next hole to the right or to the left.
+
+Another game geometry covered by this example is that of ``airport circulator'': imagine the Mouse that can travel along the same ``city wall'' in a rail car, which only runs clockwise, and one can only cover 1 station between the game rounds; thus, $h'=2$ and  $W(A_i) = \{A_i, A_{(i+1) \mod h}$.
+
+The requirement for $W(\cdot)$ being a constant involves no assumption of regularity on the structure of the graph describing the Mouse's possible movements. For example, one can draw a random directed graph in which each node $A$ is connected to some random $h'$ nodes to which the Mouse is allowed to move after playing hole $A$ at a given round (one of these $h'$ nodes  may be $A$ itself); this pattern of allowed moves also results in a sparsity pattern satisfying the requirements of this example.
+
+{\bf Example 4: Paul's example with 3 walls, and L-C-R movement constraint.} With this geometry,  Proposition \ref{prop:p1} no longer applies, since $C$ has more neighbors (2) then $L$ or $R$ (one each). 
+
+Here, the Mouse's transition matrix $P$ will be defined by 4 independent variables, e.g. $p^L_C$, $p^C_L$,  $p^C_R$, and $p^R_C$:
+$$ P=
+\begin{pmatrix} 
+ 1-p^L_C & p^L_C         & 0 \\
+ p^C_L   & 1- p^C_L-p^C_R & p^C_R \\
+0       & p^R_C          & 1-p^R_C \\
+\end{pmatrix}.
+$$
+This can be reduced to just two, if we assume symmetry between L and R, 
+and expect the matrix to have the form
+\begin{equation}
+\label{eq:lcrP}
+P=P(\alpha,\beta) \equiv
+\begin{pmatrix} 
+ 1-\alpha  & \alpha & 0 \\
+ \beta  &   1-2\beta & \beta \\
+0 & \alpha & 1-\alpha \\
+\end{pmatrix}.
+\end{equation}
+
+Here's a sketch of one way to to solve the optimization problem (\ref{eq:g6}) with respect to $\alpha$ and $\beta$ in (\ref{eq:lcrP}) analytically.
+
+Note first that the components of $s(P)$, i.e. the norms $\inorm{p^L},  \inorm{p^C}, \inorm{p^R}$, are minimized at $\alpha=\alpha_0\equiv=1/2$,
+$\beta=\beta_0 \equiv 1/3$. Even though  Proposition \ref{prop:p1} does not apply, it is still sensible to check whether $P(\frac{1}{2}, \frac{1}{3})$ is a minimum for the components of the vector $(I-P)^{-1} s(P)$ as well, and, therefore, a maximum for the components of $g$.
+
+We can rewrite  formula (\ref{eq:deltag1}) for increments of $g$ as 
+$$
+g(P) - g(P_0) = - r \phi  (I - rP)^{-1} \Delta z(P,P_0), 
+$$
+with 
+\begin{equation}
+\label{eq:dz}
+\Delta z(P,P_0) \equiv s(P)  - s(P_0)  +  r(P-P_0) (I - rP_0)^{-1}s(P_0).
+\end{equation}
+Due to Proposition \ref{prop:inv}, showing that $\Delta z_k(P,P_0) \ge 0$ for all $P\in \cal{P}$ would be sufficient to prove that $g_k(P)\le g_k(P_0)$ for all $k$. (The converse is also true, since the elements of $I-rP_0$ are non-negative.)
+
+In equation (\ref{eq:dz}), $(P-P_0) (I - rP_0)^{-1}s(P_0)$ is a linear function of $P$, and $s(P)  - s(P_0)$, a piecewise linear one; the bend lines for the latter are formed by the lines  $\alpha=\alpha_0$ and  $\beta=\beta_0$, which divide the $(\alpha, \beta)$ space into 4 rectangles with different analytical expressions for$s(P)$. 
+
+The elements of $P$ being defined as functions of $\alpha$ and $\beta$ by (\ref{eq:lcrP}), we can can analytically compute the inverse matrix $(I - rP_0)^{-1}$ (as a function of $r$), and then, in each of the 4 above-mentioned rectangles we can compute the coefficients of the linear function (of  $\Delta\alpha=\alpha-\alpha_0$ and $\Delta\beta=\beta - \beta_0$) that produces the components of $\Delta z_k(P,P_0)$ in (\ref{eq:dz}).
+\begin{equation}
+\label{eq:dz2}
+\Delta z = 
+\begin{pmatrix}
+|\Delta\alpha| \\
+\left\{\begin{matrix}
+\Delta\beta & {\rm if} & \Delta\beta\ge0  \\
+- 2*\Delta\beta & {\rm if} & \Delta\beta<0  \\
+\end{matrix}\right. \\
+|\Delta\alpha| \\
+\end{pmatrix} + \frac{r}{r+6} \begin{pmatrix}
+-\Delta\alpha \\
+2*\Delta\beta \\
+-\Delta\alpha \\
+\end{pmatrix}
+\end{equation}
+With the above values in hand, we can show that in all 4 quadrants around the bend point $(\alpha_0,\beta_0)$, the derivatives of each component of $g$ are directed ``away'' from the bend point. This proves that $(\alpha_0,\beta_0)$ does indeed yield the maximum $g_k$ for all $k$.
+
+The Mouse's payoff expectation at the optimum point  $(\alpha_0,\beta_0)$ is given by 
+$$
+g_L = g_R = \frac{1}{1-r} \left( 1 - \frac{3r\phi}{r+6}\right)
+$$
+$$
+g_C = \frac{1}{1-r} \left( 1 - \frac{r(r+2)\phi}{r+6}\right)
+$$
+For any $r\in(0,1)$ these values are, of course, smaller, than the optimal payoff expectations for a Mouse that can move between $h=3$ holes in an unrestrcited fashion, which is
+$$
+g_k = \frac{1}{1-r}  \left(1  - \frac{r\phi}{3}\right)
+$$
+(as given by (\ref{eq:payoff:ex2}) with $h=3$). This is something one would expect, since a ``restricted'' Mouse is more predictable (when the previous Mouse position was at an edge hole, the Cat only needs to watch 2 holes, rather than 3).
+
+{\bf Example 5, in which $\arg\min s \ne \arg\max g$.}
+
+As Paul has noted, there is something interesting in the previous (3 walls) example: even though the edge holes ($L$ and $R$) are worse for the mouse to be in (because its behavior there is more predictable), the middle row of the optimal matrix $P$ still has 3 identical values. This can be explained as follows: conceptually, the term $s(P)  - s(P_0)$ in formula (\ref{eq:deltag1}) corresponds to the Mouse's ``current benefit'' (or ``current loss'') from a variation in its $P$ (based on the change of the probability of it being caught by the Cat at the next step); the term with $P-P_0$ in it corresponds to the ``future benefit'' (or ``future loss''), i.e. the effect of the Mouse playing its later steps from a more (or less) advantageous position. (This can also be understood by looking at the terms of (\ref{eq:g2})).
+
+As the linear coefficients of (\ref{eq:dz2}) show, in the 3-wall example, the ``current benefits'' of going from the C hole to each of L,C,R with the same probability outweighs the ``future benefits'' of having a preference for C for any $r$. However, we can see that as $r$ increases (i.e., a higher value is placed on future events), the degree by which the  ``current benefits'' outweighs the ``future benefits'' decreases (although not all the way toward zero, since r can't be greater than 1.0). Specifically, in the quadrant $\Delta\alpha >0$, $\Delta \beta<0$, equation (\ref{eq:dz2}) has the form
+\begin{equation}
+\label{eq:dz3}
+\Delta z = 
+ \frac{6}{r+6} 
+\begin{pmatrix}
+|\Delta\alpha| \\
+- 2\Delta\beta   \\
+\Delta\alpha  \\
+\end{pmatrix}
+\end{equation}
+
+
+%This means that, in this quadrant,
+%$$
+%\lim_{r\to + \infty} \frac{ \partial \Delta z}{\partial \Delta\beta} =
+%\lim_{r\to + \infty} \frac{ \partial \Delta z}{\partial \Delta\alpha} = 0.
+%$$
+
+%In other word, for large $r$, the 3-hole geometry is nearly a borderline case; a small change in the rules of the game (e.g., making the detection probability $\phi$ for hole $C$ slightly lower than for holes $R$ and $L$, or adding more holes in such a way that $C$ becomes even more attractive), will result in the saddlepoint $P$ {\em not} being the same as the $P$ that minimizes the components of $s(P)$.
+
+Let's construct a {\bf simple example} where  $\arg\min s \ne \arg\max g$.  The hole set ${\cal{H}}=\{ A_1, \ldots, A_h \}$  will have the following geometry:
+\begin{itemize}
+\item after playing $A_1$, the Mouse can play $A_1$ or $A_2$;
+\item after playing $A_2$, the Mouse can play any hole $A\in\cal{H}$;
+\item after playing any of $A_3$, \dots $A_h$, the Mouse can play any hole $A\in\{A_2, \ldots, A_h\}$.
+\end{itemize}
+In other words, the  holes  $\{A_2, \ldots, A_h\}$ are all connected to each other, but the ``dead-end'' hole $A_1$ is only connected to $A_2$. This makes $A_1$ less desirable for the Mouse than the other holes.
+
+For this game, the components of $s(P)$ are minimized on $P=P_0$:
+$$
+P_0 = \begin{pmatrix}
+\frac{1}{2} & \frac{1}{2} &  0  & 0 & 0 & \cdots  \\
+\frac{1}{h} & \frac{1}{h} & \frac{1}{h} & \frac{1}{h}  & \frac{1}{h}& \cdots \\
+0  & \frac{1}{h-1} & \frac{1}{h-1} & \frac{1}{h-1} & \frac{1}{h-1} & \cdots \\
+   &     & \cdots &  &  & \\
+0  & \frac{1}{h-1} & \frac{1}{h-1} & \frac{1}{h-1} & \frac{1}{h-1} & \cdots \\
+\end{pmatrix},
+$$
+where 
+$$
+s(P_0) = \left[ \frac{1}{2}, \frac{1}{h}, \frac{1}{h-1}, \cdots, \frac{1}{h-1}\right]^T.
+$$
+
+Since the ``dead-end'' hole $A_1$ is much more predictable than other holes, we may ask whether the 2nd row ($p_2$) in the above matrix is optimal for $g$. To show that it is not optimal, it would be sufficient that $\Delta z_k(P,P_0)$ in (\ref{eq:dz}) is negative for some $P$. Let's see what happens if $P$ is
+modified so that the Mouse reduces its likelihood to move from $A_2$ to the ``dead-end'' hole $A_1$. For this, only the 2nd row of $P$ (row-vector $p^2$) need to be modified, i,.e.
+$$
+P-P_0 = [0, 1, 0, \cdots, 0]^T p^2,
+$$
+with 
+$$
+p^2 = \epsilon \left[-1,  \frac{1}{h-1}, \cdots, \frac{1}{h-1}, \right],
+$$
+with some $\epsilon>0$.
+
+To simplify the analysis, let's only consider the case of $h>>1$ and $r<<1$
+(so that $(I-rP)^{-1} = I + O(r)$). This gives us the following estimate for the increment to $z_2$:
+$$
+\Delta z_2 = \epsilon \left( 
+\frac{1}{h-1} + 
+r \left[-1,  \frac{1}{h-1}, \cdots, \frac{1}{h-1}]  s(P_0) \right] 
+\right) + O(r^2)
+ \approx \epsilon \left( \frac{1}{h} -  \frac{r}{2} \right)
+$$
+This means that $P_0$ ceases to be the optimum point for $g_2$ if $r$ exceeds a certain threshold, which is approximately equal to $1/h$. Thus for sufficiently large values of $r$ the optimum matrix $P$ must be different from $P_0$ at least in its second row (and probably in other rows as well).
+
+\section{Notes on optimality}
+To which extent the assumption that the rational players go for the minimax solution (\ref{eq:mm}) is realistic? 
+
+Obviously, if the Cat knows the Mouse's strategy $P$ in advance, and knows that it will not change in the future, then indeed it behooves the Cat to go for a $Q$ that achives $\min_{Q\in\cal{Q}} g_k$ with this $P$. If the Mouse knows that the Cat will know the Mouse's strategy, and the Cat will pick the optimal (for the Cat) $Q$ for whatever $P$ is used, then it makes sense for the Mouse to choose a/the $P$ that gives $\max_{P\in\cal{P}} \min_{Q\in\cal{Q}} g_k$, as per (\ref{eq:mm}).
+
+On the other hand, if the Cat believes that the Mouse is not necessarily playing the optimal strategy given by  (\ref{eq:mm}), then it should be appropriate for the Cat to watch the Mouse's activity for a while, trying to figure what the Mouse's strategy $P$ is (for example, in the extreme case, the Mouse may be so lazy that it always tries to crawl through the same hole), and then optimize its own $Q$ for that $P$. Reciprocally, if the Mouse beleievs that the Cat is not necessarily optimal in its behavior (e.g. he keeps stubbornly watching the same hole), than the Mouse could benefit from watching the Cat's strategy and setting its $P$ accordingly --- but then, of course, the Cat may also notice the Mouse's new strategy, and change its own strategy in response.
+
+
+\end{document}

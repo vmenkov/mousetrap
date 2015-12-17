@@ -1,0 +1,12 @@
+package mousetrap;
+
+public class Mousetrap {
+    
+    /** The number of holes */
+    final int h;
+    /** The names of holes (by default, simply "0", "1", etc */
+    final String names[];
+    /** For each hole X,  w[X] contains the list of holes that can be played
+	at the next step after X */
+    final int[][] w;
+}
