@@ -29,4 +29,10 @@
   </jar>
 </target>
 
+<!-- Deletes the class directory -->
+<target name="clean">
+  <delete dir="${build}"/>
+</target>
+
+
 </project>

@@ -4,30 +4,51 @@ import java.util.*;
 import java.text.*;
 import java.io.*;
 
+/** Cat and Mouse simulation for Paul Kantor. An instance of this 
+    class describes a particular geometry. */
 public class Mousetrap {
     
     /** The number of holes */
     final int h;
     /** The names of holes (by default, simply "0", "1", etc */
     final String names[];
-    /** For each hole X,  w[X] contains the list of holes that can be played
-	at the next step after X */
+    /** The model's geometry: for each hole X, w[X] contains the list
+	of holes that can be played at the next step after X */
     final int[][] w;
 
+    /** Cat's efficiency */
     final double phi = 1.0;
+    /** Discount factor for adding expected future benefits to the current
+	round's immediate payoff */
     final double r = 1.0;
 
+    Mousetrap(int [][]_w) {
+	this(null, _w);
+    }
+
+    /**
+       @param _names List of hole names. If null is given, use default names.
+       @param _w the model's geometry
+     */
     Mousetrap(String[] _names, int [][]_w) {
-	names = _names;
-	if (names==null || names.length == 0) throw new IllegalArgumentException();
-	h = names.length;
 	w = _w;
-	if (w==null || w.length != h) throw new IllegalArgumentException("Invalid w");
+	if (w==null || w.length ==0) throw new IllegalArgumentException("Invalid w");
+	h = w.length;
+
+	if (_names==null)  {
+	    names= new String[h];
+	    for(int i=0; i<h; i++) names[i] = "" + i;
+	} else if (_names.length != h) {
+	    throw new IllegalArgumentException("names[], w[] length mismatch");
+	} else {
+	    names = _names;
+	}
+
 	int i=0;
 	for(int[] z: w) {
 	    if (z==null) throw new IllegalArgumentException("null in row " + i);
 	    for(int k=0; k<z.length; k++) {
-		if (z[k] < 0 || z[k]>=h || k>0 && z[k]<=z[k-1]) throw new IllegalArgumentException("invalid data in row " + i);
+		if (z[k] < 0 || z[k]>=h || k>0 && z[k]<=z[k-1]) throw new IllegalArgumentException("Invalid data in w[" + i + "]: values are not in order");
 	    }
 	    i++;
 	}
@@ -52,10 +73,10 @@ public class Mousetrap {
 	/** Returns a list of integers which indicate the positions
 	    of largest, 2nd largest etc elements of f[w[*]], in descending
 	    order */
- 	static int[] sortIndexes(double f[], int w[])  {
-	    Integer[] v =  new Integer[w.length];
+ 	int[] sortIndexes(int w[])  {
+	    Integer[] v = new Integer[w.length];
 	    for(int i=0; i<w.length; i++) v[i] = new Integer(w[i]);
-	    Arrays.sort(v, new  DescendingComparator(f));
+	    Arrays.sort(v, this);
 	    int q[] = new int[v.length];
 	    for(int i=0; i<v.length; i++) q[i] = v[i].intValue();
 	    return q;
@@ -63,25 +84,36 @@ public class Mousetrap {
    }
 
 
-    static class POptResults {
+    /** Represents a pair of mixed strategies (the Mouse's p and the Cat's 
+	q)
+     */
+    static class OptResults {
 	double[] p, q;
+	OptResults(	double[] _p,	double[] _q) {
+	    p = _p;
+	    q = _q;
+	}
 	//	boolean qPat[];
-	static double[][] assembleP(POptResults po[]) {
+	static double[][] assembleP(OptResults po[]) {
 	    double p[][] = new double[po.length][];
 	    for(int i=0; i<po.length; i++) p[i] = po[i].p;
 	    return p;
 	}
-  	static double[][] assembleQ(POptResults po[]) {
+  	static double[][] assembleQ(OptResults po[]) {
 	    double q[][] = new double[po.length][];
 	    for(int i=0; i<po.length; i++) q[i] = po[i].q;
 	    return q;
 	}
    }
 
-    /** @param f future benefits 	
+    /** Find Nash equilibrium mixed strategies for the situatio
+	when the mouse can play any of the holes listed in w[],
+	and the payoff consists of the immediate payoff
+	and the expected future benefits (in f[])
+	@param f future benefits 	
      */
-    POptResults pOptimize(double [] f, int w[]) {
-	int[] fi = DescendingComparator.sortIndexes(f, w);
+    OptResults pOptimize(double [] f, int w[]) {
+	int[] fi = (new DescendingComparator(f)).sortIndexes(w);
 	double sumF = 0;
 	final int h1 = fi.length;
 	boolean[] setHi = new boolean[h];
@@ -93,7 +125,6 @@ public class Mousetrap {
 	    l++;
 	}
 
-
 	double[] p = new double[h];
 	final double hi = 1.0/setCnt;
 	for(int i=0;i<h; i++) p[i] = setHi[i] ? hi : 0;
@@ -104,9 +135,7 @@ public class Mousetrap {
 	for(int i=0;i<h; i++) q[i] = setHi[i] ? (f[i]-fStar)/phi : 0;
 		
 
-	POptResults res = new POptResults();
-	res.p = p;
-	res.q = q;
+	OptResults res = new OptResults(p,q);
 	return res;
     }
 
@@ -161,7 +190,7 @@ public class Mousetrap {
 
 
     void optimize() {
-	POptResults[] po = new POptResults[h];
+	OptResults[] po = new OptResults[h];
 	int n=0;
 	double f[] = new double[h];
 	double[][] p0=null, q0=null;
@@ -173,8 +202,8 @@ public class Mousetrap {
 	    for(int i = 0; i<h; i++) {
 		po[i] = pOptimize(f, w[i]);
 	    }
-	    double p[][] = POptResults.assembleP(po);
-	    double q[][] = POptResults.assembleQ(po);
+	    double p[][] = OptResults.assembleP(po);
+	    double q[][] = OptResults.assembleQ(po);
 	    System.out.print("Mouse plays P=\n" + matrixToString(p));
 	    System.out.print("Cat   plays Q=\n" + matrixToString(q));	    
 	    double[] f1 = newF( p,  q, f);
@@ -200,6 +229,7 @@ public class Mousetrap {
 	}
     }
 
+    /** Paul's 3-wall model */
     static Mousetrap mo1() {
 	Mousetrap mo = new
 	    Mousetrap(new String[] {"L", "C", "R"},
@@ -209,25 +239,24 @@ public class Mousetrap {
 	return mo;
     }
 
+    /** Long chain of holes */
     static Mousetrap mo2() {
 	int h = 10;
-	String names[] = new String [h];
 	int w[][] = new int [h][];
 	for(int i=0; i<h; i++) {
-	    names[i] = "" + i;
 	    w[i] = (i==0)? new int[] {i, i+1} :
 	    (i==h-1)?  new int[] {i-1, i} :
 	    new int[] {i-1, i, i+1};
 	}
-	return  new	    Mousetrap(names, w);
+	return  new	    Mousetrap(w);
     }
 
+
+    /** One dead-end hole next to 9 all-connected holes */
     static Mousetrap mo3() {
 	int h = 10;
-	String names[] = new String [h];
 	int w[][] = new int [h][];
 	for(int i=0; i<h; i++) {
-	    names[i] = "" + i;
 	    if (i==0) {
 		w[i] = new int[] {i, i+1};
 	    } else if (i==1) {
@@ -238,15 +267,73 @@ public class Mousetrap {
 		for(int k=0; k<h-1; k++) w[i][k] = k+1;		
 	    }
 	}
-	return  new	    Mousetrap(names, w);
+	return  new	    Mousetrap(w);
     }
+
+    /* Four-pointed star */
+    static Mousetrap mo4() {
+	Mousetrap mo = new
+	    Mousetrap(new String[] {"C", "N", "E", "S", "W"},
+		      new int [][] { {0, 1, 2, 3, 4},
+				     {0, 1}, 
+				     {0, 2},
+				     {0, 3},
+				     {0, 4}});
+	return mo;
+    }
+
+    /* Four-pointed star, longer arms */
+    static Mousetrap mo5() {
+	Mousetrap mo = new
+	    Mousetrap(new String[] {"C", "N1", "N2", "E1", "E2", "S1","S2", "W1", "W2"},
+		      new int [][] { {0, 1, 3, 5, 7},
+				     {0, 1, 2}, 
+				     {1, 2},
+				     {0, 3, 4},
+				     {3, 4},
+				     {0, 5, 6},
+				     {5, 6},
+				     {0, 7, 8},
+				     {7, 8}});
+	return mo;
+    }
+
+    /** Star with a "clique" heart */
+    static Mousetrap mo6() {
+       final int n = 5, r=3;
+       int h=n*r;
+       String[] names = new String [h];
+       int w[][] = new int [h][];
+       int j=0;
+       for(int k=0; k<r; k++) { // radial var
+	   for(int i=0; i<n; i++) {   // angular var
+	       char x = (char)('A' + i);
+	       names[j] = ("" + x) + k;
+	       if (k==0) {
+		   w[j] = new int[n+1];
+		   int l=0;
+		   for(; l<n; l++) w[j][l] = l;
+		   w[j][l] = j + n;
+	       } else if (k<r-1) {
+		   w[j] = new int[]{ j-n, j, j+n};
+	       } else {
+		   w[j] = new int[]{ j-n, j};
+	       }
+	       j++;
+	   }
+       }
+       return  new   Mousetrap(names, w);
+     }
 
 
     static public void main(String argv[]) {
 
 	//Mousetrap mo = mo1();
-	Mousetrap mo = mo2();
-	//	Mousetrap mo = mo3();
+	//Mousetrap mo = mo2();
+	//Mousetrap mo = mo3();
+	//Mousetrap mo = mo4();
+	//Mousetrap mo = mo5();
+	Mousetrap mo = mo6();
 
 	mo.optimize();
 
