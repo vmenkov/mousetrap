@@ -85,7 +85,7 @@ public class Mousetrap {
 
 
     /** Represents a pair of mixed strategies (the Mouse's p and the Cat's 
-	q)
+	q), as obtained by an optimization method.
      */
     static class OptResults {
 	double[] p, q;
@@ -106,10 +106,13 @@ public class Mousetrap {
 	}
    }
 
-    /** Find Nash equilibrium mixed strategies for the situatio
+    /** Find Nash equilibrium mixed strategies for the situation
 	when the mouse can play any of the holes listed in w[],
 	and the payoff consists of the immediate payoff
-	and the expected future benefits (in f[])
+	and the expected future benefits (in f[]).
+	This method uses the peculiar structure of the
+	payoff matrix ((I - phi * E) + e^T * w) to simplify
+	computatoins.
 	@param f future benefits 	
      */
     OptResults pOptimize(double [] f, int w[]) {
@@ -169,6 +172,16 @@ public class Mousetrap {
 	return s.toString();
     }
 
+    String matrixToString(Rational [][]p) {
+	StringBuffer s = new	StringBuffer();
+	for(int i = 0; i<h; i++) {
+	    s.append(names[i] + " :");
+	    for(int j=0; j<h; j++) s.append("\t" + p[i][j]);
+	    s.append("\n");
+	}
+	return s.toString();
+    }
+
 
     static double infNormDiff(double a[], double b[]) {
 	double d = 0;
@@ -189,25 +202,80 @@ public class Mousetrap {
     }
 
 
+    /** Find Nash equilibrium mixed strategies for the situation
+	when the mouse can play any of the holes listed in w[],
+	and the payoff consists of the immediate payoff
+	and the expected future benefits (in f[]).
+	This method works creating a generic payoff matrix,
+	and optimizing using the Simplex algorithm.
+	@param f future benefits 	
+     */
+    OptResults pOptimize2(double [] f, int w[]) {    
+	final  int L = w.length;
+	double[][] payoffMatrix = new double[L][];
+	for(int i = 0; i<L; i++) {
+	    payoffMatrix[i] =  new double[L];
+	    for(int j = 0; j<L; j++) {
+		payoffMatrix[i][j] = 1 - (i==j? phi : 0.0) + f[w[i]];
+	    }
+	}
+	double[][] trans = transpose( payoffMatrix);
+	mult(trans, -1);
+	SimplexResults mouseRes = new SimplexResults(payoffMatrix);
+	SimplexResults catRes = new SimplexResults(trans);
+	//	System.out.println("M/C: " + mouseRes.maxval + " : " + (-catRes.maxval));
+	double [] p = new double[h], q=new double[h];
+	for(int i = 0; i<L; i++) {
+	    p[ w[i]] = mouseRes.p[i];
+	    q[ w[i]] = catRes.p[i];
+	}
+	OptResults res = new OptResults(p,q);
+	return res;
+ 	
+    }
+
+    static double[][] transpose(double[][] a) {
+	final int L=a.length; 
+	final int H=a[0].length;
+	double b[][] = new double[H][];
+	for(int i=0; i<H; i++) {
+	    b[i] = new double[L];
+	    for(int k=0; k<L; k++) {
+		b[i][k] = a[k][i];
+	    }	   
+	}	
+	return b;
+    }
+
+    static void mult(double[][] a, double c) {
+	for(int i=0; i<a.length; i++) {
+	    for(int k=0; k<a[i].length; k++) {
+		a[i][k] *= c;
+	    }
+	}
+    }
+
     void optimize() {
 	OptResults[] po = new OptResults[h];
 	int n=0;
 	double f[] = new double[h];
 	double[][] p0=null, q0=null;
+	double[] avgF = new double[h];
 
 	System.out.println("Cat's efficiency phi="+ phi+", discount rate=" +r);
+	boolean conv = false;
 
-	for(; n<100; n++) {
+	for(; n<100 && !conv; n++) {
 	    System.out.println("---- " + (n+1) + "-round game: ------------------");
 	    for(int i = 0; i<h; i++) {
-		po[i] = pOptimize(f, w[i]);
+		po[i] = pOptimize2(f, w[i]);
+		//po[i] = pOptimize(f, w[i]);
 	    }
 	    double p[][] = OptResults.assembleP(po);
 	    double q[][] = OptResults.assembleQ(po);
 	    System.out.print("Mouse plays P=\n" + matrixToString(p));
 	    System.out.print("Cat   plays Q=\n" + matrixToString(q));	    
 	    double[] f1 = newF( p,  q, f);
-	    double[] avgF = new double[h];
 	    for(int i = 0; i<h; i++) {
 		avgF[i] = f1[i] / (n+1);
 		f[i] = f1[i]*r;
@@ -219,14 +287,25 @@ public class Mousetrap {
 	    }
 	    System.out.println();
 
-	    final double eps=0.0001;
+	    final double eps=1e-5;
 	    if (p0!=null && q0!=null && infNormDiff(p0,p)<eps  && infNormDiff(q0,q)<eps) {
 		System.out.println("Convergence on P and Q achieved within eps=" + eps);
-		break;
+		conv = true;
 	    }
 	    p0=p;
 	    q0=q;
 	}
+	System.out.println("===== Approximating with rational numbers: ======");
+	System.out.print("Approx P=\n" + matrixToString(approxRational(p0)));
+	System.out.print("Approx Q=\n" + matrixToString(approxRational(q0)));
+	Rational[] ravgF = approxRational(avgF);
+	System.out.println("Mouse's approx avg payoff per round=");
+	for(int i = 0; i<h; i++) {
+	    System.out.print("\t" +ravgF[i].toString());
+	    
+	}
+	System.out.println();
+
     }
 
     /** Paul's 3-wall model */
@@ -298,7 +377,7 @@ public class Mousetrap {
 	return mo;
     }
 
-    /** Star with a "clique" heart */
+    /** Star with a "clique" heart. Each of n rays consists of r holes. */
     static Mousetrap mo6() {
        final int n = 5, r=3;
        int h=n*r;
@@ -324,6 +403,39 @@ public class Mousetrap {
        }
        return  new   Mousetrap(names, w);
      }
+
+    /** Approximately convert a floating-point value to a rational, for use
+	in the simplex code. A kludge, of course.
+     */       
+    static Rational approxRational(double x) {
+	if (x==0) return Rational.ZERO;
+	final int n0 = 360 * 3;
+	int bestn = 0;
+	double minerr = 0;
+	for(int n=1;n<= n0; n++) {
+	    double q=n*x;
+	    int iq = (int)Math.round(q);
+	    double err = Math.abs( q - iq)/Math.abs(q);
+	    if (err < 1e-6) return new Rational( iq, n);
+	    if (bestn == 0 || err < minerr) {
+		bestn = n;
+		minerr = err;
+	    }
+	}
+	int iq = (int)Math.round(bestn*x);	
+	return new Rational( iq, bestn);
+    }
+
+    static Rational[] approxRational(double[] x) {
+	Rational[] r = new Rational[x.length];
+	for(int i=0; i<x.length; i++) r[i] = approxRational(x[i]);
+	return r;
+    }
+    static Rational[][] approxRational(double[][] x) {
+	Rational[][] r = new Rational[x.length][];
+	for(int i=0; i<x.length; i++) r[i] = approxRational(x[i]);
+	return r;
+    }
 
 
     static public void main(String argv[]) {
