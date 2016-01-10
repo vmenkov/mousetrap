@@ -5,7 +5,9 @@ import java.text.*;
 import java.io.*;
 
 /** Cat and Mouse simulation for Paul Kantor. An instance of this 
-    class describes a particular geometry. */
+    class describes a particular geometry. The two players are 
+    described as "constrained" and "mobile".
+*/
 public class Mousetrap {
     
     /** The number of holes */
