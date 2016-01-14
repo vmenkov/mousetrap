@@ -37,6 +37,9 @@ public class Mousetrap {
        @param _w the model's geometry
      */
     Mousetrap(String _modelName, String[] _names, int [][]_w) {
+
+	constrainedPlayerIsTheAttacker = true;
+    
 	modelName = _modelName;
 	w = _w;
 	if (w==null || w.length ==0) throw new IllegalArgumentException("Invalid w");
@@ -90,8 +93,9 @@ public class Mousetrap {
    }
 
 
-    /** Represents a pair of mixed strategies (the Mouse's p and the Cat's 
-	q), as obtained by an optimization method.
+    /** Represents a pair of mixed strategies (the constrained
+	player's p and the mobile platyer's q), as obtained by an
+	optimization method.
      */
     static class OptResults {
 	double[] p, q;
@@ -110,10 +114,21 @@ public class Mousetrap {
 	    for(int i=0; i<po.length; i++) q[i] = po[i].q;
 	    return q;
 	}
-   }
+    }
+
+    boolean constrainedPlayerIsTheAttacker = true;
+
+    String nameOfConstrainedPlayer() {
+	return  constrainedPlayerIsTheAttacker ? "attacker" : "defender";
+    }
+
+    String nameOfMobilePlayer() {
+	return  constrainedPlayerIsTheAttacker ?  "defender" : "attacker";
+    }
+
 
     /** Find Nash equilibrium mixed strategies for the situation
-	when the mouse can play any of the holes listed in w[],
+	when the mouse (invader) can play any of the holes listed in w[],
 	and the payoff consists of the immediate payoff
 	and the expected future benefits (in f[]).
 	This method uses the peculiar structure of the
@@ -122,6 +137,7 @@ public class Mousetrap {
 	@param f future benefits 	
      */
     OptResults pOptimize(double [] f, int w[]) {
+	if (!constrainedPlayerIsTheAttacker) throw new IllegalArgumentException("Special optimization is only supported when the constrained player is the attacker");
 	int[] fi = (new DescendingComparator(f)).sortIndexes(w);
 	double sumF = 0;
 	final int h1 = fi.length;
@@ -143,21 +159,34 @@ public class Mousetrap {
 	double[] q = new double[h];
 	for(int i=0;i<h; i++) q[i] = setHi[i] ? (f[i]-fStar)/phi : 0;
 		
-
 	OptResults res = new OptResults(p,q);
 	return res;
     }
 
-    /** Computes the Mouse's aggregate expected payoff of an n-round game. 
-	@param p The Mouse's play at the 1st round
-	@param q The Cat's play at the 1st round
-	@param oldF the Mouse's aggregate expected payoff of an (n-1)-round game (the last n-1 rounds of the n-round game), already multiplied by r
+    /** Computes the constrained player's aggregate expected payoff of
+	an n-round game, based on the two player's given mixed
+	strategies (p and q) in the 1st round and the expected payoff
+	for the (n-1)-round game (i.e., during the rest of the game.
+	@param p The constrained player's play at the 1st round
+	@param q The mobile player's play at the 1st round
+	@param oldF the constrained player's aggregate expected payoff of an (n-1)-round game (the last n-1 rounds of the n-round game), already multiplied by r
      */
     double[] newF(double[][] p, double[][] q, double [] oldF) {
 	double f[] = new double[h];
 	for(int i = 0; i<h; i++) {
-	    double s = 1.0;
-	    for(int j=0; j<h; j++) s += p[i][j] * (- phi*q[i][j] + oldF[j]);
+
+
+	    //		double caught = (i==j? phi : 0.0);
+	    //	payoffMatrix[i][j] = 
+	    //	    (constrainedPlayerIsTheAttacker? 1-caught : caught)+f[w[i]];
+
+	    double s=0;
+	    if (constrainedPlayerIsTheAttacker) {
+		s = 1.0;
+		for(int j=0; j<h; j++) s += p[i][j] * (- phi*q[i][j] + oldF[j]);
+	    } else {
+		for(int j=0; j<h; j++) s += p[i][j] * (phi*q[i][j] + oldF[j]);
+	    }
 	    f[i] = s;
 	}
 	return f;
@@ -211,6 +240,7 @@ public class Mousetrap {
 	return d;
     }
 
+    /** Computes the infinity-norm difference of two vectors */
     static double infNormDiff(double a[][], double b[][]) {
 	double d = 0;
 	for(int i=0; i<a.length; i++) {
@@ -220,22 +250,62 @@ public class Mousetrap {
 	return d;
     }
 
+    /** Converts sparse representation of a vector to dense.
+	@param x[] an array of L elements
+	@param h size of the dense-representation array to produce.
+	@param w[] an array of L indexes, indicating where the values from x[] should go inthe "dense" array of h elements
+	@return  An array that will contain h elements (among which L non-zeros)
+
+     */
+    private static double[] spreadArray(double[] x, int h, int[] w) {
+	double[] y = new double[h];
+	if (x.length != w.length) throw new IllegalArgumentException();
+	for(int i=0; i<w.length; i++) {
+	    y[ w[i]] = x[i];
+	}
+	return y;
+    }
 
     /** Find Nash equilibrium mixed strategies for the situation
-	when the mouse can play any of the holes listed in w[],
+	when the constrained player can play any of the holes listed in w[],
 	and the payoff consists of the immediate payoff
 	and the expected future benefits (in f[]).
 	This method works creating a generic payoff matrix,
 	and optimizing using the Simplex algorithm.
+
+	<p>
+	There is a difference how this method operates when the constrained 
+	player is the attacker vs. when it is the defender. In both cases
+	the constrained player can only play some holes (the geometrically allowed
+	once); but for the other (mobile) player the choice differs: in the former
+	case the other player is the defender and it makes sense for it to
+	only play the holes available to the attacker; in the latter case,
+	the mobile player (the defender) will want to also play the holes *not* available
+	to the constrained one (the attacker). (In fact, it only will play them,
+	if such holes exist!).
+
+
 	@param f future benefits 	
      */
     OptResults pOptimize2(double [] f, int w[]) {    
 	final  int L = w.length;
 	double[][] payoffMatrix = new double[L][];
 	for(int i = 0; i<L; i++) {
-	    payoffMatrix[i] =  new double[L];
-	    for(int j = 0; j<L; j++) {
-		payoffMatrix[i][j] = 1 - (i==j? phi : 0.0) + f[w[i]];
+
+	    if (constrainedPlayerIsTheAttacker) {
+		payoffMatrix[i] =  new double[L];
+		Arrays.fill( payoffMatrix[i], f[w[i]]);
+		for(int j = 0; j<L; j++) {
+		    double caught = (i==j? phi : 0.0);
+		    payoffMatrix[i][j] += 1-caught;
+		}
+	    } else {
+		payoffMatrix[i] =  new double[h];
+		Arrays.fill( payoffMatrix[i], f[w[i]]);
+		for(int j = 0; j<L; j++) {
+		    double caught = (i==j? phi : 0.0);
+		    payoffMatrix[i][w[j]] += caught;
+		}
 	    }
 	}
 	double[][] trans = transpose( payoffMatrix);
@@ -243,11 +313,9 @@ public class Mousetrap {
 	SimplexResults mouseRes = new SimplexResults(payoffMatrix);
 	SimplexResults catRes = new SimplexResults(trans);
 	//	System.out.println("M/C: " + mouseRes.maxval + " : " + (-catRes.maxval));
-	double [] p = new double[h], q=new double[h];
-	for(int i = 0; i<L; i++) {
-	    p[ w[i]] = mouseRes.p[i];
-	    q[ w[i]] = catRes.p[i];
-	}
+	double [] p = spreadArray(mouseRes.p, h, w);
+	double [] q = constrainedPlayerIsTheAttacker ? spreadArray(catRes.p, h, w) :
+	    catRes.p;
 	OptResults res = new OptResults(p,q);
 	return res;
  	
@@ -276,23 +344,27 @@ public class Mousetrap {
 
     static final boolean useSimplex = true;
 
-    void optimize() {
+    void optimize(PrintStream out) {
 	OptResults[] po = new OptResults[h];
 	int n=0;
 	double f[] = new double[h];
 	double[][] p0=null, q0=null;
 	double[] avgF = new double[h];
 
-	System.out.println("MODEL " + modelName);
-	System.out.println("Defender's efficiency phi="+ phi+", discount rate=" +r);
-	System.out.println("Constrained player's allowed movement map:");
-	System.out.println(wMatrixToString(w));
+	out.println("MODEL " + modelName);
+	out.println("Constrained player is the "+ nameOfConstrainedPlayer() +", mobile player is the " +
+		    nameOfMobilePlayer() );
 
+	out.println("Defender's efficiency phi="+ phi+", discount rate=" +r);
+	out.println("Constrained player's allowed movement map:");
+	out.println(wMatrixToString(w));
+
+	String lab1 = "Constrained player (" + nameOfConstrainedPlayer() +")";
+	String lab2 = "Mobile player ("+    nameOfMobilePlayer()+")";
 
 	boolean conv = false;
-
 	for(; n<100 && !conv; n++) {
-	    System.out.println("---- " + (n+1) + "-round game: ------------------");
+	    out.println("---- " + (n+1) + "-round game: ------------------");
 	    for(int i = 0; i<h; i++) {
 		if (useSimplex) {
 		    po[i] = pOptimize2(f, w[i]);
@@ -302,38 +374,38 @@ public class Mousetrap {
 	    }
 	    double p[][] = OptResults.assembleP(po);
 	    double q[][] = OptResults.assembleQ(po);
-	    System.out.print("Mouse plays P=\n" + matrixToString(p));
-	    System.out.print("Cat   plays Q=\n" + matrixToString(q));	    
+	    out.print(lab1 + " plays P=\n" + matrixToString(p));
+	    out.print(lab2 + " plays Q=\n" + matrixToString(q));	    
 	    double[] f1 = newF( p,  q, f);
 	    for(int i = 0; i<h; i++) {
 		avgF[i] = f1[i] / (n+1);
 		f[i] = f1[i]*r;
 	    }
-	    System.out.println("Mouse's avg payoff per round=");
+	    out.println(lab1 + "'s avg payoff per round=");
 	    for(int i = 0; i<h; i++) {
-		System.out.print("\t" +format(avgF[i]));
+		out.print("\t" +format(avgF[i]));
 
 	    }
-	    System.out.println();
+	    out.println();
 
 	    final double eps=1e-5;
 	    if (p0!=null && q0!=null && infNormDiff(p0,p)<eps  && infNormDiff(q0,q)<eps) {
-		System.out.println("Convergence on P and Q achieved within eps=" + eps);
+		out.println("Convergence on P and Q achieved within eps=" + eps);
 		conv = true;
 	    }
 	    p0=p;
 	    q0=q;
 	}
-	System.out.println("===== Approximating with rational numbers: ======");
-	System.out.print("Approx P=\n" + matrixToString(approxRational(p0)));
-	System.out.print("Approx Q=\n" + matrixToString(approxRational(q0)));
+	out.println("===== Approximating with rational numbers: ======");
+	out.print("Approx P=\n" + matrixToString(approxRational(p0)));
+	out.print("Approx Q=\n" + matrixToString(approxRational(q0)));
 	Rational[] ravgF = approxRational(avgF);
-	System.out.println("Mouse's approx avg payoff per round=");
+	out.println(lab1 + "'s approx avg payoff per round=");
 	for(int i = 0; i<h; i++) {
-	    System.out.print("\t" +ravgF[i].toString());
+	    out.print("\t" +ravgF[i].toString());
 	    
 	}
-	System.out.println();
+	out.println();
 
     }
 
@@ -472,7 +544,19 @@ public class Mousetrap {
     }
 
 
-    static public void main(String argv[]) {
+    static public void main(String argv[]) throws FileNotFoundException {
+
+
+	ParseConfig ht = new ParseConfig();
+	boolean mobileCat = ht.getOption("mobileCat", true);	
+	String fname = ht.getOption("out", "mousetrap.out");
+
+	// let's always produce UNIX-style output, even when running under
+	// MS Windows
+	String sep = System.setProperty("line.separator", "\n");
+	//System.out.println("Separator was ["+sep+"]");
+	//sep = System.getProperty("line.separator");
+	//System.out.println("Separator is ["+sep+"]");
 
 	Mousetrap mos[] = {mo1(),
 		mo2(),
@@ -488,11 +572,18 @@ public class Mousetrap {
 	//	Mousetrap mo = mo6();
 
 	
-	for(int i=0; i<mos.length; i++) {
-	    System.out.println("============= System no. " + (i+1) + "=======================================");
+
+	File f=new File(fname);
+	System.out.println("Output will go to file " + f);
+	PrintStream out = new PrintStream(new FileOutputStream(f));
+
+	for(int i=0; i<mos.length; i++) {	    
+	    out.println("============= System no. " + (i+1) + "=======================================");
 	    Mousetrap mo = mos[i];
-	    mo.optimize();
+	    mo.constrainedPlayerIsTheAttacker = mobileCat;
+	    mo.optimize(out);
 	}
+	out.close();
 
     }
    
