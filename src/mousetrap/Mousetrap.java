@@ -363,7 +363,9 @@ public class Mousetrap {
 	String lab2 = "Mobile player ("+    nameOfMobilePlayer()+")";
 
 	boolean conv = false;
-	for(; n<100 && !conv; n++) {
+	double avgAvgF=0;
+	final int T=100;
+	for(; n<T && !conv; n++) {
 	    out.println("---- " + (n+1) + "-round game: ------------------");
 	    for(int i = 0; i<h; i++) {
 		if (useSimplex) {
@@ -377,11 +379,14 @@ public class Mousetrap {
 	    out.print(lab1 + " plays P=\n" + matrixToString(p));
 	    out.print(lab2 + " plays Q=\n" + matrixToString(q));	    
 	    double[] f1 = newF( p,  q, f);
+	    avgAvgF=0;
 	    for(int i = 0; i<h; i++) {
 		avgF[i] = f1[i] / (n+1);
 		f[i] = f1[i]*r;
+		avgAvgF += avgF[i];
 	    }
-	    out.println(lab1 + "'s avg payoff per round=");
+	    avgAvgF /= h;
+	    out.println(lab1 + "'s avg payoff per round (hole avg="+avgAvgF+")=");
 	    for(int i = 0; i<h; i++) {
 		out.print("\t" +format(avgF[i]));
 
@@ -396,6 +401,7 @@ public class Mousetrap {
 	    p0=p;
 	    q0=q;
 	}
+	if (!conv) out.println("NO CONVERGENCE ACHIEVED in " + T + " rounds");
 	out.println("===== Approximating with rational numbers: ======");
 	out.print("Approx P=\n" + matrixToString(approxRational(p0)));
 	out.print("Approx Q=\n" + matrixToString(approxRational(q0)));
@@ -406,7 +412,7 @@ public class Mousetrap {
 	    
 	}
 	out.println();
-
+	out.println("Avg payoff per round, averaged for all starting holes = " + format(avgAvgF) + " ~= " + approxRational(avgAvgF));
     }
 
     /** Paul's 3-wall model */

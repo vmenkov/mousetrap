@@ -4,6 +4,7 @@ import java.util.*;
 //import java.text.*;
 //import java.io.*;
 
+/** Our interface to the Simplex algorithm code. */
 class SimplexResults {
     double [] p;
     double maxval=0;
