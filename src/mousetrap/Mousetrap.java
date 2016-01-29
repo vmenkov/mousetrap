@@ -193,7 +193,7 @@ public class Mousetrap {
     }
 
     static DecimalFormat fmt = new DecimalFormat("0.0000");
-    private String format(double x) {
+    String format(double x) {
 	return (x==0.0) ? "0" : fmt.format(x);
     }
 
@@ -250,6 +250,16 @@ public class Mousetrap {
 	return d;
     }
 
+    /** Computes the infinity-norm difference of two vectors */
+    static double infNormDiff(double a[][][], double b[][][]) {
+	double d = 0;
+	for(int i=0; i<a.length; i++) {
+	    double x = infNormDiff(a[i],b[i]);
+	    if (x>d) d=x;
+	}
+	return d;
+    }
+
     /** Converts sparse representation of a vector to dense.
 	@param x[] an array of L elements
 	@param h size of the dense-representation array to produce.
@@ -257,11 +267,22 @@ public class Mousetrap {
 	@return  An array that will contain h elements (among which L non-zeros)
 
      */
-    private static double[] spreadArray(double[] x, int h, int[] w) {
+    static double[] spreadArray(double[] x, int h, int[] w) {
 	double[] y = new double[h];
 	if (x.length != w.length) throw new IllegalArgumentException();
 	for(int i=0; i<w.length; i++) {
 	    y[ w[i]] = x[i];
+	}
+	return y;
+    }
+
+    /**
+       @return array y[] such that y[i] = x[w[i]]
+     */
+    static double[] arrayExtract(double[] x, int[] w) {
+	double[] y = new double[w.length];
+	for(int i=0; i<w.length; i++) {
+	    y[i] = x[w[i]];
 	}
 	return y;
     }
@@ -545,6 +566,11 @@ public class Mousetrap {
     }
     static Rational[][] approxRational(double[][] x) {
 	Rational[][] r = new Rational[x.length][];
+	for(int i=0; i<x.length; i++) r[i] = approxRational(x[i]);
+	return r;
+    }
+    static Rational[][][] approxRational(double[][][] x) {
+	Rational[][][] r = new Rational[x.length][][];
 	for(int i=0; i<x.length; i++) r[i] = approxRational(x[i]);
 	return r;
     }
