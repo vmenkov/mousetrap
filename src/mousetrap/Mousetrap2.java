@@ -184,7 +184,7 @@ public class Mousetrap2 extends Mousetrap {
 	return f;
     }
 
-    void optimize(PrintStream out) {
+    void optimize(PrintStream out, double eps) {
 	OptResults[][] po = new OptResults[h][];
 	int n=0;
 	double[][] f = alloc2(h,h);
@@ -217,8 +217,7 @@ public class Mousetrap2 extends Mousetrap {
 	    }
 	    double p[][][] = OptResults2.assembleP(po);
 	    double q[][][] = OptResults2.assembleQ(po);
-	    out.print(lab1 + " plays P=\n" + matrixToString2(p));
-	    out.print(lab2 + " plays Q=\n" + matrixToString2(q));	    
+
 	    double[][] f1 = newF( p, q, f);
 	    avgAvgF=0;
 	    for(int i = 0; i<h; i++) {
@@ -229,7 +228,20 @@ public class Mousetrap2 extends Mousetrap {
 		}
 	    }
 	    avgAvgF /= (h*h);
-	    out.println(lab1 + "'s avg payoff per round (hole avg="+avgAvgF+")=");
+
+
+	    if (p0!=null && q0!=null && infNormDiff(p0,p)<eps  && infNormDiff(q0,q)<eps) {
+		out.println("Convergence on P and Q achieved within eps=" + eps);
+		conv = true;
+	    }
+
+
+	    if (n<5 || n<100 && (n+1) % 10 == 0 || (n+1)% 100 == 0 || conv) {
+		out.print(lab1 + " plays P=\n" + matrixToString2(p));
+		out.print(lab2 + " plays Q=\n" + matrixToString2(q));	    
+	    }
+
+	    out.println(lab1+"'s avg payoff per round (hole avg="+avgAvgF+")=");
 	    for(int i = 0; i<h; i++) {
 		out.print(names[i]);
 		for(int j = 0; j<h; j++) {
@@ -237,13 +249,7 @@ public class Mousetrap2 extends Mousetrap {
 		}
 		out.println();
 	    }
-
-
-	    final double eps=1e-5;
-	    if (p0!=null && q0!=null && infNormDiff(p0,p)<eps  && infNormDiff(q0,q)<eps) {
-		out.println("Convergence on P and Q achieved within eps=" + eps);
-		conv = true;
-	    }
+	    
 	    p0=p;
 	    q0=q;
 	}
@@ -254,7 +260,7 @@ public class Mousetrap2 extends Mousetrap {
 	Rational[][] ravgF = approxRational(avgF);
 	out.println(lab1 + "'s approx avg payoff per round=");
 	for(int i = 0; i<h; i++) {
-	    out.print("names[i]");
+	    out.print(names[i]);
 	    for(int j = 0; j<h; j++) {
 		out.print("\t" +ravgF[i][j].toString());
 	    }
@@ -276,17 +282,24 @@ public class Mousetrap2 extends Mousetrap {
 	return mo;
     }
 
-    /** Long chain of holes */
-    static Mousetrap2 mo2() {
-	int h = 10;
-	int w[][] = new int [h][];
-	for(int i=0; i<h; i++) {
-	    w[i] = (i==0)? new int[] {i, i+1} :
-	    (i==h-1)?  new int[] {i-1, i} :
-	    new int[] {i-1, i, i+1};
-	}
-	return  new  Mousetrap2("Chain of " + h + " holes", null, w,w);
+ 
+    /** Creates an open or close chain of holes. Both players are constrained,
+	but may move with different speeds.
+     */
+    static Mousetrap2 moChain(int h, boolean cyclic, int speed1, int speed2) {
+	//int [] speeds = { speed1, speed2};
+	//int ws[][][] = { makeChainW(h, cyclic, speed1), makeChainW(h, cyclic, speed2)};
+	return  new  Mousetrap2((cyclic? "Circular chain" : "Open chain") +
+				" of " + h + " holes", null, 
+				makeChainW(h, cyclic, speed1), 
+				makeChainW(h, cyclic, speed2));
     }
+
+
+    /** Long chain of holes */
+    //    static Mousetrap2 mo2(int h) {
+    //	return  moChain( h, false, 1, 1);
+    //    }
     
 
     /** One dead-end hole next to 9 all-connected holes */
@@ -370,12 +383,17 @@ public class Mousetrap2 extends Mousetrap {
      }
 
 
+    /**Usage:
+       java -classpath lib/mousetrap.jar mousetrap.Mousetrap2
+     */
     static public void main(String argv[]) throws FileNotFoundException {
 
 
 	ParseConfig ht = new ParseConfig();
 	boolean mobileCat = ht.getOption("mobileCat", true);	
 	String fname = ht.getOption("out", "mousetrap.out");
+
+	final double eps=ht.getOptionDouble("eps", 1e-5);
 
 	// let's always produce UNIX-style output, even when running under
 	// MS Windows
@@ -385,10 +403,17 @@ public class Mousetrap2 extends Mousetrap {
 	//System.out.println("Separator is ["+sep+"]");
 
 	Mousetrap2 mos[] = {mo1(),
+			    moChain( 10, false, 1, 1),
+			    moChain( 10, false, 1, 2),
+			    moChain( 10, false, 2, 1),
+			    moChain( 10, false, 2, 2),
 
-			    //		mo2(),
-			    //mo3(),
-		mo4(),
+			    moChain( 10, true, 1, 1),
+			    moChain( 10, true, 1, 2),
+			    moChain( 10, true, 2, 1),
+			    moChain( 10, true, 2, 2),
+			    mo3(),
+			    mo4(),
 			    //mo5(),
 			    //mo6()};
 	
@@ -402,7 +427,7 @@ public class Mousetrap2 extends Mousetrap {
 	for(int i=0; i<mos.length; i++) {	    
 	    out.println("============= System no. " + (i+1) + "=======================================");
 	    Mousetrap2 mo = mos[i];
-	    mo.optimize(out);
+	    mo.optimize(out, eps);
 	}
 	out.close();
 

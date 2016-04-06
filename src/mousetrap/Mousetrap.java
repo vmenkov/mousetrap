@@ -167,6 +167,9 @@ public class Mousetrap {
 	an n-round game, based on the two player's given mixed
 	strategies (p and q) in the 1st round and the expected payoff
 	for the (n-1)-round game (i.e., during the rest of the game.
+	The aggregate expected payoff is a sum of the "immediate payoff"
+	in the current round and the expected payoff during the rest of 
+	the game.
 	@param p The constrained player's play at the 1st round
 	@param q The mobile player's play at the 1st round
 	@param oldF the constrained player's aggregate expected payoff of an (n-1)-round game (the last n-1 rounds of the n-round game), already multiplied by r
@@ -448,15 +451,19 @@ public class Mousetrap {
     }
 
     /** Long chain of holes */
-    static Mousetrap mo2() {
-	int h = 10;
+    static Mousetrap moChain(int h, boolean cyclic, int speed) {
+	/*
 	int w[][] = new int [h][];
 	for(int i=0; i<h; i++) {
 	    w[i] = (i==0)? new int[] {i, i+1} :
 	    (i==h-1)?  new int[] {i-1, i} :
 	    new int[] {i-1, i, i+1};
 	}
-	return  new	    Mousetrap("Chain of " + h + " holes", null, w);
+	*/
+	return new Mousetrap((cyclic? "Circular chain" : "Open chain") +
+			     " of " + h + " holes", null, 
+			     makeChainW(h, cyclic, speed));
+
     }
 
 
@@ -575,6 +582,40 @@ public class Mousetrap {
 	return r;
     }
 
+   /** A set of "constraints" that allow a player to move freely */
+    static int[][] likeFree(int h) {
+	int w[][] = new int [h][];
+	for(int i=0; i<h; i++) {
+	    w[i] = new int[h];
+	    for(int j=0; j<h; j++) { w[i][j] = j; }
+	}
+	return w;
+    }
+
+    
+    /** Creates a constraint matrix that describes an open or cyclic chain
+	of holes, and a player capable of moving by up to N holes to the left
+	or right in each round
+	@param speed N
+     */
+    static int[][] makeChainW(int h, boolean cyclic, int speed) {
+	if (cyclic && 1 + 2*speed >= h) return likeFree(h);
+	int w[][] = new int [h][];
+	for(int i=0; i<h; i++) {		    
+	    int len = cyclic ? 1+2*speed : 
+		Math.min(i, speed) +1+ Math.min(h-1-i, speed);
+	    w[i] = new int[len];
+	    int k=0;
+	    for(int j=0; j<h; j++) {	
+		int dist = cyclic? 
+		    Math.min( (i-j+h)%h, (j-i+h)%h ) : Math.abs(i-j);
+		if (dist<=speed) w[i][k++]=j;
+	    }
+	    if (k!=len) throw new AssertionError("k!=len");
+	}
+	return w;
+    }
+
 
     static public void main(String argv[]) throws FileNotFoundException {
 
@@ -590,20 +631,17 @@ public class Mousetrap {
 	//sep = System.getProperty("line.separator");
 	//System.out.println("Separator is ["+sep+"]");
 
-	Mousetrap mos[] = {mo1(),
-		mo2(),
-		mo3(),
-		mo4(),
-		mo5(),
-		mo6()};
+	Mousetrap mos[] = 
+	    {mo1(),
+	     moChain(10, false, 1),
+	     moChain(10, false, 2),
+	     moChain(10, true, 1),
+	     moChain(10, true, 2),
+	     mo3(),
+	     mo4(),
+	     mo5(),
+	     mo6()};
 
-	//Mousetrap mo = mo2();
-	//Mousetrap mo = mo3();
-	//Mousetrap mo = mo4();
-	//Mousetrap mo = mo5();
-	//	Mousetrap mo = mo6();
-
-	
 
 	File f=new File(fname);
 	System.out.println("Output will go to file " + f);
