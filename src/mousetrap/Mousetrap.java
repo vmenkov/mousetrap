@@ -266,7 +266,7 @@ public class Mousetrap {
     /** Converts sparse representation of a vector to dense.
 	@param x[] an array of L elements
 	@param h size of the dense-representation array to produce.
-	@param w[] an array of L indexes, indicating where the values from x[] should go inthe "dense" array of h elements
+	@param w[] an array of L indexes, indicating where the values from x[] should go in the "dense" array of h elements
 	@return  An array that will contain h elements (among which L non-zeros)
 
      */

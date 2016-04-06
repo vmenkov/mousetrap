@@ -109,24 +109,13 @@ public class Mousetrap2 extends Mousetrap {
 
 
 
-    /** Find Nash equilibrium mixed strategies for the situation
-	when the constrained player can play any of the holes listed in w[],
-	and the payoff consists of the immediate payoff
-	and the expected future benefits (in f[]).
-	This method works creating a generic payoff matrix,
-	and optimizing using the Simplex algorithm.
-
-	<p>
-	There is a difference how this method operates when the constrained 
-	player is the attacker vs. when it is the defender. In both cases
-	the constrained player can only play some holes (the geometrically allowed
-	once); but for the other (mobile) player the choice differs: in the former
-	case the other player is the defender and it makes sense for it to
-	only play the holes available to the attacker; in the latter case,
-	the mobile player (the defender) will want to also play the holes *not* available
-	to the constrained one (the attacker). (In fact, it only will play them,
-	if such holes exist!).
-
+    /** Find Nash equilibrium mixed strategies for two constrained
+	players.  The 1st player (the attacker) can play any of the
+	holes listed in w[], the 2nd player (the defender) can play
+	any of the holes listed in w2[].  The payoff consists of the
+	immediate payoff and the expected future benefits (in f[]).
+	This method works creating a generic payoff matrix, and
+	optimizing using the Simplex algorithm.
 
 	@param f f[j][k] contains future benefits for the first player (attacker) if the two players play (j,k)	
      */
