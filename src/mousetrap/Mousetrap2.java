@@ -19,10 +19,10 @@ public class Mousetrap2 extends Mousetrap {
     final int[][] w2;
 
     /** Cat's (defender's) efficiency */
-    final double phi = 1.0;
+    //   final double phi = 1.0;
     /** Discount factor for adding expected future benefits to the current
 	round's immediate payoff */
-    final double r = 1.0;
+    //    final double r = 1.0;
 
     Mousetrap2(int [][]_w, int[][] _w2) {
 	this("unnamed", null, _w, _w2);
@@ -68,9 +68,9 @@ public class Mousetrap2 extends Mousetrap {
 	double f[][] = alloc2(h,h);
 	for(int i = 0; i<h; i++) {
 	    for(int j = 0; j<h; j++) {
-		double cought = 0;
-		for(int k=0; k<h; k++) cought +=  p[i][j][k] * q[i][j][k];
-		double s = 1.0 - phi * cought;
+		double caught = 0;
+		for(int k=0; k<h; k++) caught +=  p[i][j][k] * q[i][j][k];
+		double s = 1.0 - phi * caught;
 
 		for(int k=0; k<h; k++) {
 		    for(int l=0; l<h; l++) {
