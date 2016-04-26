@@ -13,7 +13,7 @@ public class Mousetrap {
     /** The human-readable model name */
     final String modelName;
     
-    /** The number of holes */
+    /** The number of holes (i.e., graph nodes or positions that the cat and mouse can play) */
     final int h;
     /** The names of holes (by default, simply "0", "1", etc */
     final String names[];
