@@ -16,7 +16,7 @@
         description="Compile the Java source code">
   <!-- Compile the java code from ${src} into ${build} -->
   <javac srcdir="${src}" destdir="${build}"
-	 includes="mousetrap/**,submarine/**"  optimize="on"
+	 includes="mousetrap/**,submarine/**,gridsearch/**"  optimize="on"
 	 debug="on" debuglevel="lines,vars,source"
 	 includeantruntime="false" >
     <compilerarg value="-Xlint:unchecked"/>
