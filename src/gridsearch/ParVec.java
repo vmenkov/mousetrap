@@ -16,4 +16,15 @@ public class ParVec {
 	for(int i=0; i<n; i++) a.x[i] = 1.0;
 	return a;
     }
+
+    /*
+    class ParVecIterator implements Iterator<ParVec> {
+	boolean 	hasNext();
+	ParVec 	next();
+	void 	remove() {
+	    throw new UnsupportedOperationException();
+	}
+    }
+    */
+
 }

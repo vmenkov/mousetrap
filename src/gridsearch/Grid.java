@@ -1,5 +1,7 @@
 package gridsearch;
 
+import java.util.*;
+
 /** Represents a section of R^n space, with a regular grid on it */
 class Grid {
     /** The "lower" and "upper" corners */
@@ -7,10 +9,16 @@ class Grid {
     /** For dimension i, the range of x[i] is split into m[i] equal segments */
     int [] m;
     int dim() { return m.length; }
+    int nodeCnt() {
+	int n = 1;
+	for(int j=0; j<m.length; j++) n *= m[j];
+	return n;
+    }
+    
     /** width of one cell of this grid along the i-th dimension */
     double cellWidth(int i) { return (corners[1].x(i) -corners[0].x(i))/m[i];}
 
-    private Grid(ParVec _corners[], int [] _m) {
+    Grid(ParVec _corners[], int [] _m) {
 	corners = _corners;
 	m = _m;
     }
@@ -55,4 +63,48 @@ class Grid {
 	}
 	return new Grid( c, mnew);
     }
+
+
+    ParVec getPoint(int[] p) {
+	if (p.length != m.length) throw new IllegalArgumentException("length mismatch");
+	double [] z = new double[m.length];
+	for(int k=0; k<p.length; k++) {
+	    if (p[k]<0 || p[k]>=m[k]) throw new IllegalArgumentException("oor");
+	    z[k] = corners[0].x(k) + (p[k] * (corners[1].x(k)-corners[0].x(k))) / m[k];
+	}
+	return new ParVec(z);
+    }
+
+    ParVecIterator getParVecIterator() {
+    	return new ParVecIterator();
+    }
+	
+    
+    /** An iterator that generates all points in the mesh */
+    class ParVecIterator implements Iterator<ParVec> {
+	/** 0 &le; p[j] &lt; m[j] */
+	private int p[]= new int[m.length], num=0, maxnum=nodeCnt(); 
+	synchronized public boolean 	hasNext() {
+	    return num<maxnum;
+	}
+	synchronized public ParVec 	next() {
+	    if (!hasNext()) throw new NoSuchElementException();
+	    for(int k=0; k<p.length; k++) {
+		p[k]++;		
+		if (p[k] < m[k]) {
+		    break;
+		} else {
+		    p[k] = 0;
+		}
+	    }
+	    num++;
+	    return getPoint(p);
+	}
+	//	void 	remove() {
+	//	    throw new UnsupportedOperationException();
+	//	}
+	//ParVecIterator() {	}
+	
+    }
+    
 }
