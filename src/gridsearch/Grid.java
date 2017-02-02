@@ -12,7 +12,7 @@ class Grid {
     int dim() { return m.length; }
     int nodeCnt() {
 	int n = 1;
-	for(int j=0; j<m.length; j++) n *= m[j];
+	for(int j=0; j<m.length; j++) n *= (m[j]+1);
 	return n;
     }
     
@@ -80,8 +80,8 @@ class Grid {
 	if (p.length != m.length) throw new IllegalArgumentException("length mismatch");
 	double [] z = new double[m.length];
 	for(int k=0; k<p.length; k++) {
-	    if (p[k]<0 || p[k]>=m[k]) throw new IllegalArgumentException("oor");
-	    z[k] = corners[0].x(k) + (p[k] * (corners[1].x(k)-corners[0].x(k))) / m[k];
+	    if (p[k]<0 || p[k]>m[k]) throw new IllegalArgumentException("oor");
+	    z[k] = (corners[0].x(k)*(m[k]-p[k]) + corners[1].x(k)*p[k]) / m[k];
 	}
 	return new ParVec(z);
     }
@@ -102,7 +102,7 @@ class Grid {
 	    if (!hasNext()) throw new NoSuchElementException();
 	    for(int k=0; k<p.length; k++) {
 		p[k]++;		
-		if (p[k] < m[k]) {
+		if (p[k] <= m[k]) {
 		    break;
 		} else {
 		    p[k] = 0;

@@ -17,14 +17,13 @@ public class ParVec {
 	return a;
     }
 
-    /*
-    class ParVecIterator implements Iterator<ParVec> {
-	boolean 	hasNext();
-	ParVec 	next();
-	void 	remove() {
-	    throw new UnsupportedOperationException();
+    public String toString() {
+	StringBuffer b = new StringBuffer("[");
+	for(double q: x) {
+	    b.append(" " + q);
 	}
+	b.append("]");
+	return b.toString();
     }
-    */
 
 }
