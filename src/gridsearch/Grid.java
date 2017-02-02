@@ -8,6 +8,7 @@ class Grid {
     ParVec corners[];
     /** For dimension i, the range of x[i] is split into m[i] equal segments */
     int [] m;
+    /** The dimension of the space */
     int dim() { return m.length; }
     int nodeCnt() {
 	int n = 1;
@@ -27,6 +28,16 @@ class Grid {
 	corners = new ParVec[] { new ParVec(c[0]),new ParVec(c[1])};
 	m = _m;
     }
+
+    /** Creates a grid on an n-dimensional cube, divided into m sections
+	in each direction */
+    static Grid cubeGrid(int n, int m) {
+	ParVec[] corners = { ParVec.zero(n), ParVec.ones(n)};
+	int mx[] = new int[n];
+	for(int k=0; k<n; k++) mx[k] = m;
+	return new Grid(corners, mx);
+    }
+
     
     /** Creates a new grid covering a subdomain of the domain covered
 	by this grid. Normally, the new grid has its center at the
