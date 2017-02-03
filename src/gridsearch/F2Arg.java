@@ -23,27 +23,32 @@ abstract class F2Arg {
     enum LookFor {
 	MIN, MAX;
 	boolean min() { return this==MIN; }
+	LookFor other()  { return min()? MAX: MIN; }
     };
 
-    Res optimizeOverOneVar(ParVec fixedPar, LookFor lookFor, int minOver) {
-
-	final int mfactor = 3; //10;
-	Grid g = Grid.cubeGrid(fixedPar.dim(), mfactor);
-	final int maxlevel = 4;
-	
-	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);
-	
-    }
 
     static boolean debug = true;
     /** When a finer grid is created, how many cells of the coarser grid, in
 	each direction, does it create? */
     final int L=1;
-    
+
+    /** Optimization (min or max) over one variable 
+	@param fixedPar This variable stays constant
+	@param minOver This is the variable we optimize over
+	@param lookFor Look for min or max?
+	@return The values of arguments at which the min or max is reached, and the function value at them.
+     */
+    Res optimizeOverOneVar(ParVec fixedPar, LookFor lookFor, int minOver) {
+	final int mfactor = 3; //10;
+	final int maxlevel = 4;
+	Grid g = Grid.cubeGrid(fixedPar.dim(), mfactor);
+	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);	
+    }
+
     /** @param minOver which param one varies? 0 alpha, 1 beta. The other is fixed.
 	@param lookFor Does "optimize" mean "minimize" or "maximize"? 
      */
-    Res optimizeOverOneVarLoop(ParVec fixedPar, Grid g, LookFor lookFor, int minOver, int mfactor, int maxlevel) {
+    private Res optimizeOverOneVarLoop(ParVec fixedPar, Grid g, LookFor lookFor, int minOver, int mfactor, int maxlevel) {
 
 	for(int level = 0; ; level++) {
 
@@ -57,13 +62,41 @@ abstract class F2Arg {
 		if (best == null ||
 		    (lookFor.min()? val<best.val : val>best.val)) best=new Res(args,val);
 	    }
-	    if (debug) System.out.println("At level=" + level + ", " +
-				      lookFor + " at " + best);
+	    //	    if (debug) System.out.println("At level=" + level + ", " +
+	    //				      lookFor + " at " + best);
 				      	
 	    if (level == maxlevel) return best;
 	    g = g.vicinityGrid(best.ab[minOver], mfactor, L);
 	}
     }
+
+    Res findSaddlePoint( int dim, LookFor outerLookFor, int outerMinOver) {
+
+	final int mfactor = 3; //10;
+	final int maxlevel = 4;
+
+	Grid og = Grid.cubeGrid(dim, mfactor);
+
+	for(int level = 0; ; level++) {
+
+	    Res best = null;
+	    for(Iterator<ParVec> it = og.getParVecIterator(); it.hasNext(); ){
+		ParVec fixedPar = it.next();
+		Res r = optimizeOverOneVar(fixedPar, outerLookFor.other(), 1-outerMinOver);
+		
+		//if (debug) System.out.println(r);
+		if (best == null ||
+		    (outerLookFor.min()? r.val<best.val: r.val>best.val)) best=r;
+	    }
+	    if (debug) System.out.println("Outer level=" + level + ", " +
+				      outerLookFor + " at " + best);
+				      	
+	    if (level == maxlevel) return best;
+	    og = og.vicinityGrid(best.ab[outerMinOver], mfactor, L);
+	}
+    }
+
+    
 
 }
  
