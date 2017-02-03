@@ -27,41 +27,42 @@ abstract class F2Arg {
 
     Res optimizeOverOneVar(ParVec fixedPar, LookFor lookFor, int minOver) {
 
-	final int mfactor = 10;
+	final int mfactor = 3; //10;
 	Grid g = Grid.cubeGrid(fixedPar.dim(), mfactor);
 	final int maxlevel = 4;
 	
-	return optimizeOverOneVarRecursive(fixedPar, g, lookFor, minOver, mfactor, 0, maxlevel);
+	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);
 	
     }
 
     static boolean debug = true;
+    /** When a finer grid is created, how many cells of the coarser grid, in
+	each direction, does it create? */
+    final int L=1;
     
     /** @param minOver which param one varies? 0 alpha, 1 beta. The other is fixed.
 	@param lookFor Does "optimize" mean "minimize" or "maximize"? 
      */
-    Res optimizeOverOneVarRecursive(ParVec fixedPar, Grid g, LookFor lookFor, int minOver, int mfactor, int level, int maxlevel) {
+    Res optimizeOverOneVarLoop(ParVec fixedPar, Grid g, LookFor lookFor, int minOver, int mfactor, int maxlevel) {
 
-	Res best = null;
-	for(Iterator<ParVec> it = g.getParVecIterator(); it.hasNext(); ){
-	    ParVec q = it.next();
-	    ParVec[] args = new ParVec[2];
-	    args[ minOver ] = q;
-	    args[ 1-minOver ] = fixedPar;
-	    double val = f(args);
-	    if (best == null ||
-		(lookFor.min()? val<best.val : val>best.val)) best=new Res(args,val);
-	}
-	if (debug) System.out.println("At level=" + level + ", " +
+	for(int level = 0; ; level++) {
+
+	    Res best = null;
+	    for(Iterator<ParVec> it = g.getParVecIterator(); it.hasNext(); ){
+		ParVec[] args = new ParVec[2];
+		args[ 1-minOver ] = fixedPar;
+		args[ minOver ] = it.next();
+		double val = f(args);
+		//if (debug) System.out.println("f("+args[minOver]+")=" + val);
+		if (best == null ||
+		    (lookFor.min()? val<best.val : val>best.val)) best=new Res(args,val);
+	    }
+	    if (debug) System.out.println("At level=" + level + ", " +
 				      lookFor + " at " + best);
-				      
-	
-	if (level == maxlevel) return best;
-	final int L=1;
-	Grid g1 = g.vicinityGrid(best.ab[minOver], mfactor, L);
-
-	return  optimizeOverOneVarRecursive( fixedPar, g1, lookFor,  minOver, mfactor, level+1,  maxlevel);
-
+				      	
+	    if (level == maxlevel) return best;
+	    g = g.vicinityGrid(best.ab[minOver], mfactor, L);
+	}
     }
 
 }
