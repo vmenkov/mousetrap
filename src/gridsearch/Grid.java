@@ -2,7 +2,8 @@ package gridsearch;
 
 import java.util.*;
 
-/** Represents a section of R^n space, with a regular grid on it */
+/** Represents a section of R^n space (an n-dimensional hypercube),
+    with a regular grid on it, and possibly a linear constraint. */
 class Grid {
     /** The "lower" and "upper" corners */
     ParVec corners[];
@@ -10,7 +11,14 @@ class Grid {
     int [] m;
     /** The dimension of the space */
     int dim() { return m.length; }
-    int nodeCnt() {
+
+    /** Null means no constraint; otherwise, the grid only includes points
+	satsifying the constraint */
+    private Constraint constraint=null;
+    
+    /** How many nodes the grid on the entire cube has. (Not all of them may
+	satisfy the constraint!) */
+    int cubeNodeCnt() {
 	int n = 1;
 	for(int j=0; j<m.length; j++) n *= (m[j]+1);
 	return n;
@@ -35,7 +43,13 @@ class Grid {
 	ParVec[] corners = { ParVec.zero(n), ParVec.ones(n)};
 	int mx[] = new int[n];
 	for(int k=0; k<n; k++) mx[k] = m;
-	return new Grid(corners, mx);
+	return new Grid(corners, mx);       
+    }
+
+    static Grid simplexGrid(int n, int m) {
+	Grid g=cubeGrid(n,m);
+	g.constraint = Constraint.simplex(n);
+	return g;
     }
 
     
@@ -72,7 +86,9 @@ class Grid {
 	    }
 	    mnew[i] = md[0] + md[1];
 	}
-	return new Grid( c, mnew);
+	Grid g = new Grid( c, mnew);
+	g.constraint = constraint;
+	return g;
     }
 
 
@@ -94,28 +110,117 @@ class Grid {
     /** An iterator that generates all points in the mesh */
     class ParVecIterator implements Iterator<ParVec> {
 	/** 0 &le; p[j] &lt; m[j] */
-	private int p[]= new int[m.length], num=0, maxnum=nodeCnt(); 
-	synchronized public boolean 	hasNext() {
-	    return num<maxnum;
+	private int p[]= new int[m.length];
+
+	/** Is set to true (by advanceP) once there are no more points to return*/
+	private boolean finished = false;
+
+	/** Is set to true (by next()) one the current p[] has been returned
+	    by next(); is unset (by advanceP) once p[] has been advanced. 
+	    This flag only matters if finished==false. */
+	private boolean currentPHasBeenUsed=false;
+	
+	ConstraintInt ci = (constraint==null)? null: new ConstraintInt(constraint);
+
+	ParVecIterator() {
+	    if (!currentPAcceptable()) {
+		advanceP();
+	    }
 	}
+	  	
+	synchronized public boolean 	hasNext() {
+	    if (!finished && currentPHasBeenUsed) {
+		advanceP();
+	    }
+	    return !finished;
+	}
+	
 	synchronized public ParVec 	next() {
 	    if (!hasNext()) throw new NoSuchElementException();
-	    for(int k=0; k<p.length; k++) {
-		p[k]++;		
-		if (p[k] <= m[k]) {
-		    break;
-		} else {
-		    p[k] = 0;
-		}
-	    }
-	    num++;
+	    currentPHasBeenUsed = true;
 	    return getPoint(p);
 	}
+	
+	synchronized private boolean currentPAcceptable() {
+	    for(int k=0; k<p.length; k++) {
+		if (p[k]<0 || p[k]>m[k]) return false;
+	    }
+	    return (ci==null || ci.holds(p));
+	}
+
+	/** Advances p[] by at least 1 position until it points to a
+	    new usable point, or until running out of points (in which
+	    case it sets the "finished" flag). */
+	 synchronized private void advanceP() {
+	     if (finished) return;
+
+	     for(int k=0; k<p.length; k++) {
+		 p[k]++;
+		 if (p[k] <= m[k] && (ci==null || ci.holds(p))) {
+		     currentPHasBeenUsed = false;
+		     return;
+		 } else {
+		     p[k] = 0;
+		 }
+	     }
+	     finished = true;
+	 }
+
 	//	void 	remove() {
 	//	    throw new UnsupportedOperationException();
 	//	}
-	//ParVecIterator() {	}
+
 	
     }
-    
+
+    /** Represents a constraint of the form sum_j (a[j]*x[j]) &le; b,
+	with non-negative a[]
+     */
+    static class Constraint {
+	double a[];
+	double b=1.0;
+	/** Checks that the constraint is all-non-negative */
+	void validate() {
+	    for(int i=0; i<a.length; i++) {
+		if (a[i]<0) throw new IllegalArgumentException("Constraints with negative coefficients not supported");
+	    }
+	}
+	static Constraint simplex(int n) {
+	    Constraint c=new Constraint();
+	    c.a = new double[n];
+	    for(int i=0; i<n; i++) c.a[i] = 1.0;
+	    c.validate();
+	    return c;
+	}
+	boolean holds(double x[]) {
+	    double sum = 0;
+	    for(int i=0; i<a.length; i++) {
+		sum += a[i] * x[i];
+	    }
+	    return sum <= b;
+	}
+    }
+
+    /** This constraint is applied to the integer coordinates of grid points (on
+	the [0..m] scale, rather than [0..1])  */
+    class ConstraintInt extends Constraint {
+	double b;
+	ConstraintInt(Constraint c) {
+	    if (c.a.length != dim()) throw new IllegalArgumentException();
+	    a = new double[c.a.length];
+	    b = 1.0;
+	    for(int i=0; i<a.length; i++) {
+		b -= corners[0].x(i);
+		a[i] = c.a[i] * cellWidth(i);
+	    }
+	    validate();
+	}
+	boolean holds(int [] pos) {
+	    double sum = 0;
+	    for(int i=0; i<a.length; i++) {
+		sum += a[i] * pos[i];
+	    }
+	    return sum <= b;
+	}
+    }
 }

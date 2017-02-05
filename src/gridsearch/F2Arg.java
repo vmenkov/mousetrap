@@ -38,10 +38,11 @@ abstract class F2Arg {
 	@param lookFor Look for min or max?
 	@return The values of arguments at which the min or max is reached, and the function value at them.
      */
-    Res optimizeOverOneVar(ParVec fixedPar, LookFor lookFor, int minOver) {
+    Res optimizeOverOneVar(boolean simplex, ParVec fixedPar, LookFor lookFor, int minOver) {
 	final int mfactor = 3; //10;
 	final int maxlevel = 4;
-	Grid g = Grid.cubeGrid(fixedPar.dim(), mfactor);
+	Grid g = simplex? Grid.simplexGrid(fixedPar.dim(), mfactor) :
+	    Grid.cubeGrid(fixedPar.dim(), mfactor);
 	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);	
     }
 
@@ -62,27 +63,29 @@ abstract class F2Arg {
 		if (best == null ||
 		    (lookFor.min()? val<best.val : val>best.val)) best=new Res(args,val);
 	    }
-	    //	    if (debug) System.out.println("At level=" + level + ", " +
-	    //				      lookFor + " at " + best);
+	    	    if (debug) System.out.println("At level=" + level + ", " +
+	    				      lookFor + " at " + best);
 				      	
 	    if (level == maxlevel) return best;
 	    g = g.vicinityGrid(best.ab[minOver], mfactor, L);
 	}
     }
 
-    Res findSaddlePoint( int dim, LookFor outerLookFor, int outerMinOver) {
+    Res findSaddlePoint( boolean simplex, int dim, LookFor outerLookFor, int outerMinOver) {
 
 	final int mfactor = 3; //10;
 	final int maxlevel = 4;
 
-	Grid og = Grid.cubeGrid(dim, mfactor);
+	Grid og = simplex?
+	    Grid.simplexGrid(dim, mfactor):
+	    Grid.cubeGrid(dim, mfactor);
 
 	for(int level = 0; ; level++) {
 
 	    Res best = null;
 	    for(Iterator<ParVec> it = og.getParVecIterator(); it.hasNext(); ){
 		ParVec fixedPar = it.next();
-		Res r = optimizeOverOneVar(fixedPar, outerLookFor.other(), 1-outerMinOver);
+		Res r = optimizeOverOneVar(simplex, fixedPar, outerLookFor.other(), 1-outerMinOver);
 		
 		//if (debug) System.out.println(r);
 		if (best == null ||

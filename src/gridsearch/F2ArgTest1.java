@@ -23,25 +23,37 @@ public class F2ArgTest1 extends F2Arg {
     }
 
     
-    static public void mainTest1(String[] argv) {
+    static public void test1(String[] argv) {
 	F2Arg f = new F2ArgTest1();
 	int n=5;
-	Res res = f.optimizeOverOneVar(ParVec.zero(n), LookFor.MIN, 1);
-	System.out.println("Minimized at: " + res);
-	res = f.optimizeOverOneVar(ParVec.zero(n), LookFor.MAX, 1);
-	System.out.println("Maximized at: " + res);
+	//	boolean simplex = false;
+	Res res;
+	boolean ss[] = {false, true};
+	for(boolean simplex: ss) {
+	    String lab = simplex? "simplex" : "cube";
+	    res = f.optimizeOverOneVar(simplex, ParVec.zero(n), LookFor.MIN, 1);
+	    System.out.println("Minimized on "+lab+" at: " + res);
+	    res = f.optimizeOverOneVar(simplex, ParVec.zero(n), LookFor.MAX, 1);
+	    System.out.println("Maximized on "+lab+" at: " + res);
+	}
+    }
+
+    static public void test2(String[] argv) {
+	F2Arg f = new F2ArgTest1();
+	int n=5;
+	
+	boolean ss[] = {false, true};
+	for(boolean simplex: ss) {
+	    Res res = f.findSaddlePoint(simplex, n, LookFor.MAX, 0);
+	    System.out.println("max_a min_b at: " + res);
+	    res = f.findSaddlePoint(simplex, n, LookFor.MIN, 1);
+	    System.out.println("min_b max_a at: " + res);
+	}
     }
 
     static public void main(String[] argv) {
-	F2Arg f = new F2ArgTest1();
-	int n=5;
-
-	Res res = f.findSaddlePoint( n, LookFor.MAX, 0);
-	System.out.println("max_a min_b at: " + res);
-	res = f.findSaddlePoint( n, LookFor.MIN, 1);
-	System.out.println("min_b max_a at: " + res);
+	test1(argv);
     }
-
 
 
     
