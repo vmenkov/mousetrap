@@ -36,6 +36,8 @@ public class F2ArgTest1 extends F2Arg {
 	    res = f.optimizeOverOneVar(simplex, ParVec.zero(n), LookFor.MAX, 1);
 	    System.out.println("Maximized on "+lab+" at: " + res);
 	}
+
+
     }
 
     static public void test2(String[] argv) {

@@ -48,7 +48,7 @@ class Grid {
 
     static Grid simplexGrid(int n, int m) {
 	Grid g=cubeGrid(n,m);
-	g.constraint = Constraint.simplex(n);
+	g.constraint = SingleConstraint.simplex(n);
 	return g;
     }
 
@@ -120,7 +120,7 @@ class Grid {
 	    This flag only matters if finished==false. */
 	private boolean currentPHasBeenUsed=false;
 	
-	ConstraintInt ci = (constraint==null)? null: new ConstraintInt(constraint);
+	Constraint ci = (constraint==null)? null: constraint.constraintInt(Grid.this);
 
 	ParVecIterator() {
 	    if (!currentPAcceptable()) {
@@ -173,54 +173,5 @@ class Grid {
 	
     }
 
-    /** Represents a constraint of the form sum_j (a[j]*x[j]) &le; b,
-	with non-negative a[]
-     */
-    static class Constraint {
-	double a[];
-	double b=1.0;
-	/** Checks that the constraint is all-non-negative */
-	void validate() {
-	    for(int i=0; i<a.length; i++) {
-		if (a[i]<0) throw new IllegalArgumentException("Constraints with negative coefficients not supported");
-	    }
-	}
-	static Constraint simplex(int n) {
-	    Constraint c=new Constraint();
-	    c.a = new double[n];
-	    for(int i=0; i<n; i++) c.a[i] = 1.0;
-	    c.validate();
-	    return c;
-	}
-	boolean holds(double x[]) {
-	    double sum = 0;
-	    for(int i=0; i<a.length; i++) {
-		sum += a[i] * x[i];
-	    }
-	    return sum <= b;
-	}
-    }
-
-    /** This constraint is applied to the integer coordinates of grid points (on
-	the [0..m] scale, rather than [0..1])  */
-    class ConstraintInt extends Constraint {
-	double b;
-	ConstraintInt(Constraint c) {
-	    if (c.a.length != dim()) throw new IllegalArgumentException();
-	    a = new double[c.a.length];
-	    b = 1.0;
-	    for(int i=0; i<a.length; i++) {
-		b -= corners[0].x(i);
-		a[i] = c.a[i] * cellWidth(i);
-	    }
-	    validate();
-	}
-	boolean holds(int [] pos) {
-	    double sum = 0;
-	    for(int i=0; i<a.length; i++) {
-		sum += a[i] * pos[i];
-	    }
-	    return sum <= b;
-	}
-    }
+  
 }

@@ -30,7 +30,7 @@ abstract class F2Arg {
     static boolean debug = true;
     /** When a finer grid is created, how many cells of the coarser grid, in
 	each direction, does it create? */
-    final int L=1;
+    static final int L=1;
 
     /** Optimization (min or max) over one variable 
 	@param fixedPar This variable stays constant
