@@ -3,7 +3,8 @@ package gridsearch;
 import java.util.*;
 
 /** Represents a section of R^n space (an n-dimensional hypercube),
-    with a regular grid on it, and possibly a linear constraint. */
+    with a regular grid on it, and possibly a linear constraint
+    or a set of such constraints. */
 class Grid {
     /** The "lower" and "upper" corners */
     ParVec corners[];
@@ -17,8 +18,9 @@ class Grid {
     private Constraint constraint=null;
     
     /** How many nodes the grid on the entire cube has. (Not all of them may
-	satisfy the constraint!) */
-    int cubeNodeCnt() {
+	satisfy the constraint, so the actual number of nodes over which 
+	we optimize may be smaller!) */
+    private int cubeNodeCnt() {
 	int n = 1;
 	for(int j=0; j<m.length; j++) n *= (m[j]+1);
 	return n;

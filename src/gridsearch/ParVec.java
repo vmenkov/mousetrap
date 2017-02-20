@@ -6,6 +6,7 @@ public class ParVec {
     private double [] x;
     public int dim() { return x.length; }
     public double x(int i) { return x[i]; }
+    public double[] getX() { return x;}
     public ParVec(int n) { x = new double[n]; }
     public ParVec(double c[]) {
 	x = Arrays.copyOf(c, c.length);

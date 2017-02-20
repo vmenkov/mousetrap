@@ -16,7 +16,7 @@ public class Mousetrap2 extends Mousetrap {
     /** The second part of the model's geometry: for each hole X, w2[X] contains the list
 	of holes that can be played by the 2nd player at the
 	next step after X */
-    final int[][] w2;
+    public final int[][] w2;
 
     /** Cat's (defender's) efficiency */
     //   final double phi = 1.0;
@@ -259,7 +259,7 @@ public class Mousetrap2 extends Mousetrap {
     }
 
     /** Paul's 3-wall model */
-    static Mousetrap2 mo1() {
+    public static Mousetrap2 mo1() {
 	int [][] w=
 	    new int [][] {new int[] {0, 1},
 			  new int[] {0, 1, 2}, 

@@ -14,16 +14,16 @@ public class Mousetrap {
     final String modelName;
     
     /** The number of holes (i.e., graph nodes or positions that the cat and mouse can play) */
-    final int h;
+    public final int h;
     /** The names of holes (by default, simply "0", "1", etc */
     final String names[];
     /** The model's geometry: for each hole X, w[X] contains the list
 	of holes that can be played by the "constrained" player at the
 	next step after X */
-    final int[][] w;
+    public final int[][] w;
 
     /** Cat's (defender's) efficiency */
-    final double phi = 1.0;
+    public final double phi = 1.0;
     /** Discount factor for adding expected future benefits to the current
 	round's immediate payoff */
     final double r = 1.0;
