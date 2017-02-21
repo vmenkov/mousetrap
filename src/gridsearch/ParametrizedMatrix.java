@@ -1,5 +1,6 @@
 package gridsearch;
 
+import java.io.*;
 import java.util.*;
 import mousetrap.*;
 
@@ -45,6 +46,7 @@ public class ParametrizedMatrix  {
 	static Symmetry mirror(int n) {
 	    int z[] = new int[n];
 	    Symmetry s = new Symmetry();
+	    s.mapsto = new int[n];
 	    for(int i=0; i<n; i++) s.mapsto[i] = n-1-i;
 	    return s;	    
 	}
@@ -114,6 +116,7 @@ public class ParametrizedMatrix  {
 	one player */
     static class MatrixData {
 	final int[][] w;
+	/** Sparse matrices whose structure (by column) is described by w[][] */
 	double [][]  aUnseen, aSeen;
 
 	private static double[][] fillData(final int apos[][], double [] q) {
@@ -138,6 +141,11 @@ public class ParametrizedMatrix  {
 	    return a;
 	}
 
+
+	MatrixData(ParametrizedMatrix mi, ParVec qv) {
+	    this(mi, qv.getX());
+	}
+
 	MatrixData(ParametrizedMatrix mi, double [] q) {
 	    w = mi.w;
 	    if (q.length != mi.nvar) throw new IllegalArgumentException("var cnt mismatch");
@@ -145,108 +153,6 @@ public class ParametrizedMatrix  {
 	    aSeen   =  fillData(mi.aposSeen, q);
 	}
     }
-
-    /** A JointProbVector describes the probability distribution over
-	all possible states of the two-player system.  xUnseen[i][j]
-	is the probability of Player A being at i and Player B at j,
-	and them not seeing each other; xSeen[i] is the probability of
-	Players A and B both being at i, and seeing each other. All
-	probabilities should sum to 1.0.
-     */
-    static class JointProbVector {
-	double [][] xUnseen;
-	double [] xSeen;
-	int n() { return xSeen.length; }
-	JointProbVector(int n) {
-	    xUnseen = zeroMat(n,n);
-	    xSeen = new double[n];
-	}
-
-	/** Checks if the values sum to 1.0 (within a computational error) 
-	 */
-	void validate() {
-	    double ss=sumSeen(), su=0;
-	    for(int i=0; i< xUnseen.length; i++) {
-		for(int j=0; j< xUnseen[i].length; j++) {
-		    su += xUnseen[i][j];
-		}
-	    }
-	    double s=ss+su;
-	    if (Math.abs(s - 1.0) > 1e-6) throw new IllegalArgumentException("Probabilities don't sum to 1.0. ss=" + ss+", su=" + su+", s=" + s);
-	}
-
-
-	double sumSeen() {
-	    double ss=0;
-	    for(int i=0; i< xSeen.length; i++) {
-		ss += xSeen[i];
-	    }
-	    return ss;
-	}
-
-
-	static double[][] zeroMat(int nrow, int ncol) {
-	    double [][] x = new double[nrow][];
-	    for(int i=0; i<x.length; i++)  x[i] = new double[ncol];
-	    return x;
-	}
-
-	/**
-	   xi'_i = phi * ( \sum_k aSeen_{ik} bSeen_{ik} * xi_k  +
-	       \sum_{kl} aUnseen_{ik} bUnseen_{ik} * x_{kl} ).
-
-	   Remember that sparse matrices A and B are stored by column.
-	 */
-	JointProbVector apply( MatrixData a, MatrixData b, double phi) {
-	    JointProbVector res = new JointProbVector(n()); 
-
-	    for(int k=0; k<a.w.length; k++) {
-		for(int pi=0; pi<a.w[k].length; pi++) {
-		    int i = a.w[k][pi];
-
-		    for(int pj=0; pj<b.w[k].length; pj++) {
-			int j = b.w[k][pj];
-			
-			double r = a.aSeen[k][i] * b.aSeen[k][j] * xSeen[k];
-			res.xUnseen[i][j] += r;
-			if (i==j) res.xSeen[i] += r;
-		    }
-		}
-	    }
-
-	    double [][] u = zeroMat(b.w.length, b.w.length);
-
-	    for(int k=0; k<a.w.length; k++) {
-		for(int l=0; l<b.w.length; l++) {
-		    for(int pj=0; pj<b.w[l].length; pj++) {
-			int j = b.w[l][pj];
-			u[j][k] += b.aUnseen[l][j] * xUnseen[k][l];
-		    }
-		}
-	    }
-
-	    for(int j=0; j<b.w.length; j++) {
-		for(int k=0; k<a.w.length; k++) {
-		    for(int pi=0; pi<a.w[k].length; pi++) {
-			int i = a.w[k][pi];
-			double r = a.aSeen[k][pi] * u[j][k];
-			res.xUnseen[i][j] += r;
-			if (i==j) res.xSeen[i] += r;
-		    }
-		}
-	    }
-
-	    for(int i=0; i<a.w.length; i++) {
-		res.xSeen[i] *= phi;
-		res.xUnseen[i][i] -= 	res.xSeen[i];
-	    }
-	
-	    return res;
-	}
-
-
-    }
-    
 
     /** Creates a new 2-dimensional array with the same structure as
 	w[][], filled with a specified value (such as NONE) */
@@ -278,7 +184,7 @@ public class ParametrizedMatrix  {
 	return b.toString();
     }
 
-    public class F2ArgImmediatePayoff extends F2Arg {
+    public static class F2ArgImmediatePayoff extends F2Arg {
   	ParametrizedMatrix aScheme, bScheme;
 	JointProbVector jpv0;
 	final double phi;
@@ -286,25 +192,54 @@ public class ParametrizedMatrix  {
 			     JointProbVector _jpv0) {
 	    phi = mo.phi;
 	    jpv0 = _jpv0;
+	    jpv0.validate();
 	    aScheme = new ParametrizedMatrix(mo.w, sym);
 	    bScheme = new ParametrizedMatrix(mo.w2, sym);
+
+	    System.out.println("Player A parametrization map:");
+	    System.out.println( report(mo.w, aScheme.aposUnseen, sym));
+
+	    System.out.println("Player B parametrization map:");
+	    System.out.println( report(mo.w2, bScheme.aposUnseen, sym));
+
+
+
 	}
 
 	double f(ParVec alpha, ParVec beta) {
-	    MatrixData amat = new MatrixData(aScheme, alpha.getX());
-	    MatrixData bmat = new MatrixData(bScheme, beta.getX());
+	    MatrixData amat = new MatrixData(aScheme, alpha);
+	    MatrixData bmat = new MatrixData(bScheme, beta);
 	    JointProbVector jpv = jpv0.apply(amat, bmat, phi);
 	    return jpv.sumSeen();
 	}
     }
 
-    static public void main() {
+    /** The function being optimized is the payoff for the defender (i.e. the
+	second player). Thus we go for min_A max_B  and max_B min_A
+    */
+    static public void main(String [] argv) {
 	Mousetrap2 mo = Mousetrap2.mo1();
 	Symmetry sym = Symmetry.mirror(mo.h);
 	JointProbVector jpv = new JointProbVector(mo.h);
 	int startPoint = mo.h/2;
 	jpv.xUnseen[startPoint][startPoint] = 1.0;  // both players start at the center point
 
+	PrintStream out = System.out;
+	out.println("MODEL " + mo.modelName);
+	out.println("Defender's efficiency phi="+ mo.phi);
+	out.println("Attacker's allowed movement map:");
+	out.println(mo.wMatrixToString(mo.w));
+	out.println("Defender's allowed movement map:");
+	out.println(mo.wMatrixToString(mo.w2));
+
+	F2ArgImmediatePayoff test  = new F2ArgImmediatePayoff(mo, sym, jpv);
+
+
+
+	int n = test.aScheme.nvar;
+	F2Arg.Res res = test.findSaddlePoint(true, n, F2Arg.LookFor.MIN, 0);
+	out.println("A=mouse, B=cat");
+	out.println("min_a max_b at: " + res);
 
 
     }

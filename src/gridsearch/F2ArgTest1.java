@@ -40,6 +40,10 @@ public class F2ArgTest1 extends F2Arg {
 
     }
 
+    /** As per Mousetrap2 definition, the first player is the attacker, the 
+	second defender. The payoff function measures the payoff for the second
+	player; so we're looking for  min max.
+    */
     static public void test2(String[] argv) {
 	F2Arg f = new F2ArgTest1();
 	int n=5;

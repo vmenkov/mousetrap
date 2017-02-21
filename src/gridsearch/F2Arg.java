@@ -71,6 +71,9 @@ abstract class F2Arg {
 	}
     }
 
+    /** @param outerLookFor:  the outer optimization is min or max
+	@param outerMinOver: the outer optimization is for variable 0 or 1
+     */
     Res findSaddlePoint( boolean simplex, int dim, LookFor outerLookFor, int outerMinOver) {
 
 	final int mfactor = 3; //10;

@@ -11,7 +11,7 @@ import java.io.*;
 public class Mousetrap {
     
     /** The human-readable model name */
-    final String modelName;
+    public final String modelName;
     
     /** The number of holes (i.e., graph nodes or positions that the cat and mouse can play) */
     public final int h;
@@ -200,7 +200,7 @@ public class Mousetrap {
 	return (x==0.0) ? "0" : fmt.format(x);
     }
 
-    String wMatrixToString(int [][]w) {
+    public String wMatrixToString(int [][]w) {
 	StringBuffer s = new	StringBuffer();
 	for(int i = 0; i<h; i++) {
 	    s.append(names[i] + " :");
@@ -213,7 +213,7 @@ public class Mousetrap {
 	return s.toString();
     }
 
-    String matrixToString(double [][]p) {
+    public String matrixToString(double [][]p) {
 	StringBuffer s = new	StringBuffer();
 	for(int i = 0; i<h; i++) {
 	    s.append(names[i] + " :");
