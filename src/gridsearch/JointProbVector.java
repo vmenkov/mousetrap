@@ -53,6 +53,10 @@ public class JointProbVector {
 	   xi'_i = phi * ( \sum_k aSeen_{ik} bSeen_{ik} * xi_k  +
 	       \sum_{kl} aUnseen_{ik} bUnseen_{ik} * x_{kl} ).
 
+
+	   x'_{ij} = (\sum_{kl} aUnseen_{ik} bUnseen_{jl} x_{kl} +
+                  \sum_k aSeen_{ik} bSeen_{jk} xi_k ) - \delta_{ij} xi'_i.
+
 	   Remember that sparse matrices A and B are stored by column.
 	 */
 	JointProbVector apply( ParametrizedMatrix.MatrixData a, ParametrizedMatrix.MatrixData b, double phi) {

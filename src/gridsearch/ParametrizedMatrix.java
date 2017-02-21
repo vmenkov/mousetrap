@@ -88,7 +88,7 @@ public class ParametrizedMatrix  {
 		    if (w[k][i] == k) {
 			// the diagonal element = 1 - sum(others)
 			aptr[k][i] = Symmetry.REST;
-		    } else if (a1 != Symmetry.NONE)  {		    // use symmetry...
+		    } else if (a1 != Symmetry.NONE)  {	    // use symmetry...
 			aptr[k][i] = a1;
 		    } else {
 			aptr[k][i] = apos ++;
@@ -98,10 +98,12 @@ public class ParametrizedMatrix  {
 	}
     }
 
+    /** The matrix structure (same as in Mousetrap class) */
     final int [][] w;
     int nvar;
+    /** How matrix elements are based on parameters. The structure of
+	these arrays is the same as w[][]. */
     int [][] aposUnseen, aposSeen;
-    
 
     ParametrizedMatrix(int _w[][], Symmetry sym) {
 	w = _w;
@@ -172,6 +174,8 @@ public class ParametrizedMatrix  {
 	    a==Symmetry.REST ? "R" :  "" + a;
     }
 
+    /** Displays the matrix structure and the way matrix elements are
+	based on the parameters */
     static String report(int w[][], int aptr[][], Symmetry sym) {
 	StringBuffer b = new StringBuffer();
 	for(int k=0; k<w.length; k++) {
@@ -201,8 +205,6 @@ public class ParametrizedMatrix  {
 
 	    System.out.println("Player B parametrization map:");
 	    System.out.println( report(mo.w2, bScheme.aposUnseen, sym));
-
-
 
 	}
 
