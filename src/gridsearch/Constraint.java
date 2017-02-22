@@ -11,6 +11,6 @@ public interface Constraint {
     /** This constraint is applied to the integer coordinates of grid points (on
 	the [0..m] scale, rather than [0..1])  */
     public Constraint constraintInt(Grid g);
-
+    public boolean equals(Object x);
 }
 

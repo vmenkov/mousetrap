@@ -79,10 +79,11 @@ public class ParametrizedMatrix  {
 	int apos;
 
 	/** Fills aptr[][] */
-	AsgMap(int w[][], Symmetry sym, int apos0) {
+	AsgMap(int w[][], Symmetry sym, int apos0, MultiConstraint mc) {
 	    apos = apos0;
 	    aptr =   arrayStructureCopy(w,  Symmetry.NONE);
 	    for(int k=0; k<w.length; k++) {
+		HashSet<Integer> h = new HashSet<Integer>();
 		for(int i=0; i<w[k].length; i++) {
 		    int a1 = sym.lookup( w,  aptr, k, i);
 		    if (w[k][i] == k) {
@@ -90,28 +91,39 @@ public class ParametrizedMatrix  {
 			aptr[k][i] = Symmetry.REST;
 		    } else if (a1 != Symmetry.NONE)  {	    // use symmetry...
 			aptr[k][i] = a1;
+			h.add(aptr[k][i] );
 		    } else {
 			aptr[k][i] = apos ++;
+			h.add(aptr[k][i] );
 		    }
 		}
+		
+		mc.addSimplexConstraintIfUnique(h);
+
 	    }
 	}
     }
 
     /** The matrix structure (same as in Mousetrap class) */
     final int [][] w;
+    /** The number of parameters */
     int nvar;
     /** How matrix elements are based on parameters. The structure of
 	these arrays is the same as w[][]. */
     int [][] aposUnseen, aposSeen;
+    /** Constraints used to restrict the space of legal parameter combinations */
+    Constraint constraint;
 
     ParametrizedMatrix(int _w[][], Symmetry sym) {
 	w = _w;
-	AsgMap map1 = new AsgMap(w, sym, 0);
-	AsgMap map2 = new AsgMap(w, sym, map1.apos);
+	MultiConstraint mc = new MultiConstraint();
+
+	AsgMap map1 = new AsgMap(w, sym, 0, mc);
+	AsgMap map2 = new AsgMap(w, sym, map1.apos, mc);
 	aposUnseen = map1.aptr;
 	aposSeen = map2.aptr;
 	nvar = map2.apos;
+	constraint = mc;
     }
 
     /** An object of this class describes an actual transition matrix for 
@@ -154,6 +166,24 @@ public class ParametrizedMatrix  {
 	    aUnseen =  fillData(mi.aposUnseen, q);
 	    aSeen   =  fillData(mi.aposSeen, q);
 	}
+
+	/** @param s aUnseen[][] or aSeen[][] */
+	double [][] toDenseMatrix(double [][] s) {
+	    double[][] a = JointProbVector.zeroMat(w.length, w.length);
+	    for(int k=0; k<w.length; k++) {
+		for(int i=0; i<w[k].length; i++) {
+		    a[k][w[k][i]] = s[k][i];
+		}
+	    }
+	    return s;
+	}
+
+	double [][][] toDenseMatrices() {
+	    return new double [][][] { toDenseMatrix(aUnseen),
+				       toDenseMatrix(aSeen) };
+	}
+
+
     }
 
     /** Creates a new 2-dimensional array with the same structure as
@@ -192,6 +222,10 @@ public class ParametrizedMatrix  {
   	ParametrizedMatrix aScheme, bScheme;
 	JointProbVector jpv0;
 	final double phi;
+
+  	ParametrizedMatrix[] schemes() {
+	    return new  ParametrizedMatrix[] { aScheme, bScheme};
+	}
 	F2ArgImmediatePayoff(Mousetrap2 mo, Symmetry sym, 
 			     JointProbVector _jpv0) {
 	    phi = mo.phi;
@@ -242,6 +276,15 @@ public class ParametrizedMatrix  {
 	F2Arg.Res res = test.findSaddlePoint(true, n, F2Arg.LookFor.MIN, 0);
 	out.println("A=mouse, B=cat");
 	out.println("min_a max_b at: " + res);
+
+	String[] labels = {"A", "B"};
+	for(int l=0; l<2; l++) {
+	    MatrixData amat = new MatrixData(test.schemes()[l], res.ab[l]);
+	    double [][][] z = amat.toDenseMatrices();
+	    out.println(labels[l] + ".unseen=\n" + mo.matrixToString(z[0]));
+	    out.println(labels[l] + ".seen  =\n" + mo.matrixToString(z[1]));
+	}
+
 
 
     }

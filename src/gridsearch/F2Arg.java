@@ -41,8 +41,8 @@ abstract class F2Arg {
     Res optimizeOverOneVar(boolean simplex, ParVec fixedPar, LookFor lookFor, int minOver) {
 	final int mfactor = 3; //10;
 	final int maxlevel = 4;
-	Grid g = simplex? Grid.simplexGrid(fixedPar.dim(), mfactor) :
-	    Grid.cubeGrid(fixedPar.dim(), mfactor);
+	Constraint cons=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
+	Grid g = Grid.cubeGrid(fixedPar.dim(), mfactor, cons);
 	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);	
     }
 
@@ -79,9 +79,9 @@ abstract class F2Arg {
 	final int mfactor = 3; //10;
 	final int maxlevel = 4;
 
-	Grid og = simplex?
-	    Grid.simplexGrid(dim, mfactor):
-	    Grid.cubeGrid(dim, mfactor);
+	Constraint cons=simplex? SingleConstraint.simplex(dim) :null;
+
+	Grid og = Grid.cubeGrid(dim, mfactor, cons);
 
 	for(int level = 0; ; level++) {
 

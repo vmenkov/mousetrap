@@ -29,31 +29,35 @@ class Grid {
     /** width of one cell of this grid along the i-th dimension */
     double cellWidth(int i) { return (corners[1].x(i) -corners[0].x(i))/m[i];}
 
-    Grid(ParVec _corners[], int [] _m) {
+    Grid(ParVec _corners[], int [] _m, Constraint _constraint) {
 	corners = _corners;
 	m = _m;
+	constraint = _constraint;
+    }
+
+    private Grid(double c[][], int [] _m, Constraint _constraint) {
+	this( new ParVec[] { new ParVec(c[0]),new ParVec(c[1])}, _m, 
+	      _constraint);
     }
 
     private Grid(double c[][], int [] _m) {
-	corners = new ParVec[] { new ParVec(c[0]),new ParVec(c[1])};
-	m = _m;
+	this(c, _m, null);
     }
 
     /** Creates a grid on an n-dimensional cube, divided into m sections
 	in each direction */
-    static Grid cubeGrid(int n, int m) {
+    static Grid cubeGrid(int n, int m, Constraint _constraint) {
 	ParVec[] corners = { ParVec.zero(n), ParVec.ones(n)};
 	int mx[] = new int[n];
 	for(int k=0; k<n; k++) mx[k] = m;
-	return new Grid(corners, mx);       
+	return new Grid(corners, mx, _constraint);       
     }
 
     static Grid simplexGrid(int n, int m) {
-	Grid g=cubeGrid(n,m);
-	g.constraint = SingleConstraint.simplex(n);
-	return g;
+	return cubeGrid(n,m, SingleConstraint.simplex(n));
     }
 
+ 
     
     /** Creates a new grid covering a subdomain of the domain covered
 	by this grid. Normally, the new grid has its center at the

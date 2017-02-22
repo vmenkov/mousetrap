@@ -1,5 +1,7 @@
 package gridsearch;
 
+import java.util.*;
+
 /** Represents a linear constraint, of the form 
     sum_j   (a[j]*x[j]) &le; b, 
     with a sparse non-negative a[]
@@ -15,6 +17,12 @@ class SingleSparseConstraint implements Constraint{
 	b = _b;
     }
     
+    /** Creates a constraint of the form 
+	sum_{i in Z} x_i &le; 1
+	for a specified set of index Z
+	@param _aInd The set of indexes (Z). The caller is expected to ensure
+	uniqueness and order.
+    */
     static SingleSparseConstraint simplex(int _aInd[]) {
 	SingleSparseConstraint c = new
 	    SingleSparseConstraint(_aInd, new double[_aInd.length], 1.0);
@@ -63,5 +71,13 @@ class SingleSparseConstraint implements Constraint{
 	return q;
     }
   	
+    public boolean equals(Object x) {
+	if (!(x instanceof SingleSparseConstraint)) return false;
+	SingleSparseConstraint z= (SingleSparseConstraint)x;
+	return z.b == b && 
+	    Arrays.equals(z.aInd,  aInd) &&
+	    Arrays.equals(z.aVal,  aVal);
+    }
+
 }
 
