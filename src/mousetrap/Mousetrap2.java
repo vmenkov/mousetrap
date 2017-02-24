@@ -275,7 +275,7 @@ public class Mousetrap2 extends Mousetrap {
     /** Creates an open or close chain of holes. Both players are constrained,
 	but may move with different speeds.
      */
-    static Mousetrap2 moChain(int h, boolean cyclic, int speed1, int speed2) {
+    public static Mousetrap2 moChain(int h, boolean cyclic, int speed1, int speed2) {
 	//int [] speeds = { speed1, speed2};
 	//int ws[][][] = { makeChainW(h, cyclic, speed1), makeChainW(h, cyclic, speed2)};
 	return  new  Mousetrap2((cyclic? "Circular chain" : "Open chain") +

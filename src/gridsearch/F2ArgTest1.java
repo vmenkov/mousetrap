@@ -31,9 +31,10 @@ public class F2ArgTest1 extends F2Arg {
 	boolean ss[] = {false, true};
 	for(boolean simplex: ss) {
 	    String lab = simplex? "simplex" : "cube";
-	    res = f.optimizeOverOneVar(simplex, ParVec.zero(n), LookFor.MIN, 1);
+	    Constraint cons=simplex? SingleConstraint.simplex(n) :null;
+	    res = f.optimizeOverOneVar(ParVec.zero(n), cons, n, LookFor.MIN, 1);
 	    System.out.println("Minimized on "+lab+" at: " + res);
-	    res = f.optimizeOverOneVar(simplex, ParVec.zero(n), LookFor.MAX, 1);
+	    res = f.optimizeOverOneVar(ParVec.zero(n), cons, n, LookFor.MAX, 1);
 	    System.out.println("Maximized on "+lab+" at: " + res);
 	}
 
@@ -47,12 +48,20 @@ public class F2ArgTest1 extends F2Arg {
     static public void test2(String[] argv) {
 	F2Arg f = new F2ArgTest1();
 	int n=5;
+	int [] dim = {n,n};
 	
 	boolean ss[] = {false, true};
 	for(boolean simplex: ss) {
-	    Res res = f.findSaddlePoint(simplex, n, LookFor.MAX, 0);
+
+	    Constraint[] cons= new Constraint[2];
+	    if (simplex) {
+		cons[0] = SingleConstraint.simplex(dim[0]);
+		cons[1] = SingleConstraint.simplex(dim[1]);
+	    }
+
+	    Res res = f.findSaddlePoint(dim, cons, LookFor.MAX, 0);
 	    System.out.println("max_a min_b at: " + res);
-	    res = f.findSaddlePoint(simplex, n, LookFor.MIN, 1);
+	    res = f.findSaddlePoint(dim, cons, LookFor.MIN, 1);
 	    System.out.println("min_b max_a at: " + res);
 	}
     }

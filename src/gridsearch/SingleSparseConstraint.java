@@ -7,15 +7,15 @@ import java.util.*;
     with a sparse non-negative a[]
 */
 class SingleSparseConstraint implements Constraint{
-    int aInd[];
-    double aVal[];
-    double b;
-    private SingleSparseConstraint() {}
-    SingleSparseConstraint(	int _aInd[], double _aVal[], double _b) {
+    final int aInd[];
+    final double aVal[];
+    final double b;
+    SingleSparseConstraint(int _aInd[], double _aVal[], double _b) {
 	aInd = _aInd;
 	aVal = _aVal;
 	b = _b;
-    }
+  	validate();
+  }
     
     /** Creates a constraint of the form 
 	sum_{i in Z} x_i &le; 1
@@ -24,18 +24,15 @@ class SingleSparseConstraint implements Constraint{
 	uniqueness and order.
     */
     static SingleSparseConstraint simplex(int _aInd[]) {
-	SingleSparseConstraint c = new
-	    SingleSparseConstraint(_aInd, new double[_aInd.length], 1.0);
-	for(int i=0; i<c.aInd.length; i++) {
-	    c.aVal[i] = 1.0;
-	}
-	return c;
+	double [] _aVal = new double[_aInd.length];
+	Arrays.fill(_aVal, 1.0);
+	return new SingleSparseConstraint(_aInd, _aVal, 1.0);
     }
-
 
     public void validate() {
 	if (aInd.length != aVal.length) throw new IllegalArgumentException("SSConstraint: length mismatch");
 	for(int i=0; i<aVal.length; i++) {
+	    if (i>0 && aInd[i]<=aInd[i-1])  throw new IllegalArgumentException("Constraint definition invalid: indexes not in order: " + this);
 	    if (aVal[i]<0) throw new IllegalArgumentException("Constraints with negative coefficients not supported");
 	}       	
     }
@@ -57,16 +54,15 @@ class SingleSparseConstraint implements Constraint{
     }
 
     public Constraint constraintInt(Grid g) {
-	SingleSparseConstraint q = new SingleSparseConstraint();
-	q.aVal = new double[aVal.length];
-	q.aInd = new int[aInd.length];
-	q.b = 1.0;
+	double[] _aVal =  new double[aVal.length];
+	double _b = b;
 	for(int i=0; i<aInd.length; i++) {
-	    int k = q.aInd[i];
+	    int k = aInd[i];
 	    if (k>= g.dim()) throw new IllegalArgumentException();
-	    q.b -= g.corners[0].x(k);
-	    q.aVal[i] = aVal[i] * g.cellWidth(k);
+	    _b -= g.corners[0].x(k);
+	    _aVal[i] = aVal[i] * g.cellWidth(k);
 	}
+	SingleSparseConstraint q = new SingleSparseConstraint(aInd, _aVal, _b);
 	q.validate();
 	return q;
     }
@@ -77,6 +73,19 @@ class SingleSparseConstraint implements Constraint{
 	return z.b == b && 
 	    Arrays.equals(z.aInd,  aInd) &&
 	    Arrays.equals(z.aVal,  aVal);
+    }
+
+    public String toString() {
+	StringBuffer s = new StringBuffer("(");
+	int cnt=0;
+	for(int i=0; i<aInd.length; i++) {
+	    if (cnt > 0) s.append(" + ");
+	    if (aVal[i] != 1.0) s.append("" + aVal[i] + "*");
+	    s.append("x["+ aInd[i]+"] ");
+	    cnt++;
+	}
+	s.append(" <= " + b + ")");
+	return s.toString();
     }
 
 }

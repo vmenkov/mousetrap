@@ -8,77 +8,11 @@ import mousetrap.*;
     to an actual matrix */
 public class ParametrizedMatrix  {
 
-    /** Describes some form of symmetry of the graph (a
-	homomorphism). When optimizing for the players'
-	strategies, we only look for strategies that are
-	similarly symmetric (i.e. invariant with respect to
-	the graph's mapping onto itself by the homomorphism).
-     */
-    static class Symmetry {
-	static final int NONE = -1, REST= -2;
-	int mapsto[];
-	/** Which other value in aptr[][]   corresponds to aptr[k][j]? */
-	int lookup(int w[][], int aptr [][], int k, int j) {
-	    // edge (k,m) is mapped to (k1,m1) by the symmetry
-	    int m = w[k][j];
-	    int k1 = mapsto[k];
-	    int m1 = mapsto[m];
-
-	    if (k1==NONE || m1==NONE) return NONE;
-
-	    for(int i=0; i<w[k1].length; i++) {
-		if (w[k1][i] == m1) {
-		    if (aptr[k1]==null) return NONE;
-		    int a1 = aptr[k1][i];
-		    return  (a1 == NONE) ? NONE : a1;
-		}
-	    }
-	    return NONE;
-	}
-
-	static Symmetry none(int n) {
-	    Symmetry s = new Symmetry();
-	    s.mapsto = new int[n];
-	    for(int i=0; i<n; i++) s.mapsto[i] = NONE;
-	    return s;
-	}
-      	
-	static Symmetry mirror(int n) {
-	    int z[] = new int[n];
-	    Symmetry s = new Symmetry();
-	    s.mapsto = new int[n];
-	    for(int i=0; i<n; i++) s.mapsto[i] = n-1-i;
-	    return s;	    
-	}
-
-	static int indexOf(int[] a, int z) {
-	    for(int i=0; i<a.length; i++) {
-		if (a[i]==z) return i;
-	    }
-	    return -1;
-	}
-
-	void verify(int[][] w) {
-	    final String msg = "The Symmetry map is not consistent with the graph structure";
-	    for(int k=0; k<w.length; k++) {
-		int k1 = mapsto[k];
-		if (k1==NONE || k1==k) continue;
-		if (w[k].length != w[k1].length) throw new IllegalArgumentException(msg + ": w["+k+"].length="+w[k].length+", w["+k1+"].length="+w[k1].length);
-		for(int i=0; i<w[k].length; i++) {
-		    int r0 = w[k][i];
-		    int r = mapsto[r0];
-		    if (indexOf(w[k1],r) < 0) throw new IllegalArgumentException(msg + ": w["+k+"] has "+r0+", w["+k1+"] has no "+r);
-		}
-	    }
-	}
-
-    }
-
     private static class AsgMap {
 	int [][] aptr;
 	int apos;
 
-	/** Fills aptr[][] */
+	/** Fills aptr[][]; adds constraints to mc */
 	AsgMap(int w[][], Symmetry sym, int apos0, MultiConstraint mc) {
 	    apos = apos0;
 	    aptr =   arrayStructureCopy(w,  Symmetry.NONE);
@@ -96,8 +30,7 @@ public class ParametrizedMatrix  {
 			aptr[k][i] = apos ++;
 			h.add(aptr[k][i] );
 		    }
-		}
-		
+		}		
 		mc.addSimplexConstraintIfUnique(h);
 
 	    }
@@ -118,10 +51,12 @@ public class ParametrizedMatrix  {
 	w = _w;
 	MultiConstraint mc = new MultiConstraint();
 
+	System.out.println("Building map for unseen, start apos=0");
 	AsgMap map1 = new AsgMap(w, sym, 0, mc);
+	System.out.println("Building map for unseen, start apos=" + map1.apos);
 	AsgMap map2 = new AsgMap(w, sym, map1.apos, mc);
 	aposUnseen = map1.aptr;
-	aposSeen = map2.aptr;
+	aposSeen   = map2.aptr;
 	nvar = map2.apos;
 	constraint = mc;
     }
@@ -149,8 +84,11 @@ public class ParametrizedMatrix  {
 			s += 	a[k][i];
 		    }
 		}
-		if (diagPos==Symmetry.NONE) throw new  IllegalArgumentException("No diagonal values found for k="+k);
+		if (diagPos==Symmetry.NONE) throw new  IllegalArgumentException("No diagonal value found for k="+k);
 		a[k][diagPos] = 1.0 - s;
+		if (a[k][diagPos]<0) {
+		    throw new  IllegalArgumentException("Negative diagonal value ("+a[k][diagPos]+") computed for k="+k);
+		}
 	    }
 	    return a;
 	}
@@ -175,12 +113,24 @@ public class ParametrizedMatrix  {
 		    a[k][w[k][i]] = s[k][i];
 		}
 	    }
-	    return s;
+	    return a;
 	}
 
 	double [][][] toDenseMatrices() {
 	    return new double [][][] { toDenseMatrix(aUnseen),
 				       toDenseMatrix(aSeen) };
+	}
+
+	public String toString() {
+	    StringBuffer b = new StringBuffer();
+	    double [][][] z = toDenseMatrices();
+	    for(int k=0; k<2;k++) {
+		b.append(k==0? "Unseen\n": "Seen\n");
+		for(double[] q: z[k]) {
+		    b.append("[" + Arrays.toString(q) + "]\n");
+		}
+	    }
+	    return b.toString();
 	}
 
 
@@ -201,7 +151,7 @@ public class ParametrizedMatrix  {
 
     static String a2str(int a) {
 	return a==Symmetry.NONE ? "?" :
-	    a==Symmetry.REST ? "R" :  "" + a;
+	    a==Symmetry.REST ? "X" :  "" + a;
     }
 
     /** Displays the matrix structure and the way matrix elements are
@@ -218,7 +168,7 @@ public class ParametrizedMatrix  {
 	return b.toString();
     }
 
-    public static class F2ArgImmediatePayoff extends F2Arg {
+    public static class F2ArgPayoff extends F2Arg {
   	ParametrizedMatrix aScheme, bScheme;
 	JointProbVector jpv0;
 	final double phi;
@@ -226,8 +176,12 @@ public class ParametrizedMatrix  {
   	ParametrizedMatrix[] schemes() {
 	    return new  ParametrizedMatrix[] { aScheme, bScheme};
 	}
-	F2ArgImmediatePayoff(Mousetrap2 mo, Symmetry sym, 
-			     JointProbVector _jpv0) {
+
+	final boolean ev;
+
+	F2ArgPayoff(Mousetrap2 mo, Symmetry sym, 
+		    JointProbVector _jpv0, boolean _ev) {
+	    ev = _ev;
 	    phi = mo.phi;
 	    jpv0 = _jpv0;
 	    jpv0.validate();
@@ -243,11 +197,67 @@ public class ParametrizedMatrix  {
 	}
 
 	double f(ParVec alpha, ParVec beta) {
+	    return ev? f_longTerm(alpha,beta) :  
+		f_ImmediatePayoff(alpha,beta);
+	}
+
+	double f_ImmediatePayoff(ParVec alpha, ParVec beta) {
 	    MatrixData amat = new MatrixData(aScheme, alpha);
 	    MatrixData bmat = new MatrixData(bScheme, beta);
 	    JointProbVector jpv = jpv0.apply(amat, bmat, phi);
 	    return jpv.sumSeen();
 	}
+
+	int callsTotal=0, callsNoConv=0;
+	long tTotal=0;
+
+	String statsReport() {
+	    return ev?
+		"EV: " + callsTotal + " calls so far; failed to achieve convergence in " +  callsNoConv + " calls; <T> = "+((double)tTotal)/callsTotal:
+		"Imediate payoff: " + callsTotal + " calls so far";
+	}
+
+	double f_longTerm(ParVec alpha, ParVec beta) {
+	    if (callsTotal % 10000 ==0) {
+		System.out.println(statsReport());
+	    }
+
+
+	    callsTotal++;
+	    MatrixData amat = new MatrixData(aScheme, alpha);
+	    MatrixData bmat = new MatrixData(bScheme, beta);
+
+	    final int maxT = 100;
+	    int t=0;
+	    double r, r0=0;
+	    JointProbVector jpv = jpv0;
+	    while(true) {
+		t++;
+		jpv = jpv.apply(amat, bmat, phi);		
+		r = jpv.sumSeen() / (jpv.sumSeen() + jpv.sumUnseen());
+		if (Double.isInfinite(r)) {
+		    System.out.println("Infinity encountered: t=" + t+", jpv.sumSeen() = " + jpv.sumSeen() + ", jpv.sumUnseen()=" + jpv.sumUnseen());
+		    System.out.println("jpv=" + jpv);
+		    System.out.println("amat=" + amat);
+		    System.out.println("bmat=" + bmat);
+		    
+		    throw new IllegalArgumentException();
+		}
+		if (t>1) {
+		    if (Math.abs(r-r0) < 1e-4) break;
+		    r0 = r;
+		}
+		if (t>maxT) {
+		    callsNoConv ++;
+		    break;
+		}
+	    }
+	    tTotal += t;
+	    return r;
+
+	}
+
+
     }
 
     /** The function being optimized is the payoff for the defender (i.e. the
@@ -255,6 +265,9 @@ public class ParametrizedMatrix  {
     */
     static public void main(String [] argv) {
 	Mousetrap2 mo = Mousetrap2.mo1();
+	//Mousetrap2 mo = Mousetrap2.moChain(4, false, 1, 1);
+
+
 	Symmetry sym = Symmetry.mirror(mo.h);
 	JointProbVector jpv = new JointProbVector(mo.h);
 	int startPoint = mo.h/2;
@@ -268,12 +281,14 @@ public class ParametrizedMatrix  {
 	out.println("Defender's allowed movement map:");
 	out.println(mo.wMatrixToString(mo.w2));
 
-	F2ArgImmediatePayoff test  = new F2ArgImmediatePayoff(mo, sym, jpv);
+	F2ArgPayoff test  = new F2ArgPayoff(mo, sym, jpv, true);
 
+	int dim[] = { test.aScheme.nvar, test.bScheme.nvar};
+	Constraint cons[] = {test.aScheme.constraint, test.bScheme.constraint};
 
+	F2Arg.Res res = test.findSaddlePoint(dim, cons, F2Arg.LookFor.MIN, 0);
+	System.out.println(test.statsReport());
 
-	int n = test.aScheme.nvar;
-	F2Arg.Res res = test.findSaddlePoint(true, n, F2Arg.LookFor.MIN, 0);
 	out.println("A=mouse, B=cat");
 	out.println("min_a max_b at: " + res);
 
@@ -285,9 +300,6 @@ public class ParametrizedMatrix  {
 	    out.println(labels[l] + ".seen  =\n" + mo.matrixToString(z[1]));
 	}
 
-
-
     }
-
 
 }

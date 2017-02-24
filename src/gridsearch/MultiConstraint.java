@@ -29,13 +29,17 @@ public class MultiConstraint implements Constraint {
     void addSimplexConstraintIfUnique(HashSet<Integer> h) {
       int z[] = new int[h.size()];
       int p=0;
-      for(Integer a: z) { z[p++] = a.intValue(); }
+      for(Integer a: h) { z[p++] = a.intValue(); }
       addSimplexConstraintIfUnique(z);
     }
 
     /** Assumes ind[] is sorted */
     private void addSimplexConstraintIfUniqueSorted(int[] ind) {
 	SingleSparseConstraint c = SingleSparseConstraint.simplex(ind);
+	if (ind.length <= 1) {	
+	    System.out.println("Not adding constraint " + c + ", because it's trivial");
+	    return;
+	}
 	for(Constraint o: v) {
 	    if (o.equals(c)) {
 		System.out.println("Not adding constraint " + c + ", because it's already in");

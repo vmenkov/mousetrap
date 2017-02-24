@@ -40,10 +40,7 @@ class Grid {
 	      _constraint);
     }
 
-    private Grid(double c[][], int [] _m) {
-	this(c, _m, null);
-    }
-
+  
     /** Creates a grid on an n-dimensional cube, divided into m sections
 	in each direction */
     static Grid cubeGrid(int n, int m, Constraint _constraint) {
@@ -54,7 +51,7 @@ class Grid {
     }
 
     static Grid simplexGrid(int n, int m) {
-	return cubeGrid(n,m, SingleConstraint.simplex(n));
+	return cubeGrid(n, m, SingleConstraint.simplex(n));
     }
 
  
@@ -92,8 +89,7 @@ class Grid {
 	    }
 	    mnew[i] = md[0] + md[1];
 	}
-	Grid g = new Grid( c, mnew);
-	g.constraint = constraint;
+	Grid g = new Grid( c, mnew, constraint);
 	return g;
     }
 

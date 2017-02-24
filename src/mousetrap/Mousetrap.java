@@ -217,6 +217,7 @@ public class Mousetrap {
 	StringBuffer s = new	StringBuffer();
 	for(int i = 0; i<h; i++) {
 	    s.append(names[i] + " :");
+	    if (p[i].length != h) throw new IllegalArgumentException("Not a square " + h + " by " + h + " matrix");
 	    for(int j=0; j<h; j++) s.append("\t" + format(p[i][j]));
 	    s.append("\n");
 	}

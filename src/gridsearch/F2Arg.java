@@ -38,11 +38,11 @@ abstract class F2Arg {
 	@param lookFor Look for min or max?
 	@return The values of arguments at which the min or max is reached, and the function value at them.
      */
-    Res optimizeOverOneVar(boolean simplex, ParVec fixedPar, LookFor lookFor, int minOver) {
+    Res optimizeOverOneVar(ParVec fixedPar, Constraint cons, int dim, LookFor lookFor, int minOver) {
 	final int mfactor = 3; //10;
 	final int maxlevel = 4;
-	Constraint cons=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
-	Grid g = Grid.cubeGrid(fixedPar.dim(), mfactor, cons);
+	//	Constraint cons=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
+	Grid g = Grid.cubeGrid(dim, mfactor, cons);
 	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);	
     }
 
@@ -71,24 +71,33 @@ abstract class F2Arg {
 	}
     }
 
-    /** @param outerLookFor:  the outer optimization is min or max
+    /** @param dimnension (for the two arguments of f[])
+	@param outerLookFor:  the outer optimization is min or max
 	@param outerMinOver: the outer optimization is for variable 0 or 1
      */
-    Res findSaddlePoint( boolean simplex, int dim, LookFor outerLookFor, int outerMinOver) {
+    Res findSaddlePoint( //boolean simplex, 
+			int[] dim, Constraint cons[], 
+			LookFor outerLookFor, int outerMinOver) {       
+	if (cons==null) cons = new Constraint[2];
 
 	final int mfactor = 3; //10;
 	final int maxlevel = 4;
 
-	Constraint cons=simplex? SingleConstraint.simplex(dim) :null;
+	//Constraint cons=simplex? SingleConstraint.simplex(dim) :null;
 
-	Grid og = Grid.cubeGrid(dim, mfactor, cons);
+	Grid og = Grid.cubeGrid(dim[outerMinOver], mfactor, cons[outerMinOver]);
+	final int inner  = 1 - outerMinOver;
 
 	for(int level = 0; ; level++) {
 
 	    Res best = null;
 	    for(Iterator<ParVec> it = og.getParVecIterator(); it.hasNext(); ){
 		ParVec fixedPar = it.next();
-		Res r = optimizeOverOneVar(simplex, fixedPar, outerLookFor.other(), 1-outerMinOver);
+
+
+		//		Constraint cons2=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
+
+		Res r = optimizeOverOneVar(fixedPar, cons[inner], dim[inner], outerLookFor.other(), inner);
 		
 		//if (debug) System.out.println(r);
 		if (best == null ||
