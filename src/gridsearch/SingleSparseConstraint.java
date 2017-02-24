@@ -15,7 +15,7 @@ class SingleSparseConstraint implements Constraint{
 	aVal = _aVal;
 	b = _b;
   	validate();
-  }
+    }
     
     /** Creates a constraint of the form 
 	sum_{i in Z} x_i &le; 1
