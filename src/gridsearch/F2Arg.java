@@ -55,9 +55,22 @@ abstract class F2Arg {
 
 	    Res best = null;
 	    for(Iterator<ParVec> it = g.getParVecIterator(); it.hasNext(); ){
+
+
+
+
+
+
 		ParVec[] args = new ParVec[2];
 		args[ 1-minOver ] = fixedPar;
 		args[ minOver ] = it.next();
+
+		if (!g.constraint.holds(args[ minOver ])) {
+		    System.out.println("Error context:\ngrid=\n" +g +"\npoint=" + args[ minOver ]);
+		    throw new IllegalArgumentException("Iterator over the grid produced a point value that does not satisfy the constraint");
+		}
+
+
 		double val = f(args);
 		//if (debug) System.out.println("f("+args[minOver]+")=" + val);
 		if (best == null ||
@@ -93,7 +106,6 @@ abstract class F2Arg {
 	    Res best = null;
 	    for(Iterator<ParVec> it = og.getParVecIterator(); it.hasNext(); ){
 		ParVec fixedPar = it.next();
-
 
 		//		Constraint cons2=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
 

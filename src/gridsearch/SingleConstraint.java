@@ -1,9 +1,11 @@
 package gridsearch;
 
+import java.util.*;
+
 /** Represents a constraint of the form sum_j (a[j]*x[j]) &le; b,
     with non-negative a[]
 */
-class SingleConstraint implements Constraint {
+class SingleConstraint extends Constraint {
     double a[];
     double b=1.0;
     /** Checks that the constraint is all-non-negative */
@@ -46,6 +48,12 @@ class SingleConstraint implements Constraint {
 	}
 	q.validate();
 	return q;
+    }
+
+    public boolean equals(Object o) {
+	if (!(o instanceof SingleConstraint)) return false;
+	SingleConstraint c = (SingleConstraint)o;
+	return Arrays.equals(c.a, a) && c.b==b;
     }
 
 }

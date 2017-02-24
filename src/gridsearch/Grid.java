@@ -15,7 +15,8 @@ class Grid {
 
     /** Null means no constraint; otherwise, the grid only includes points
 	satsifying the constraint */
-    private Constraint constraint=null;
+    //    private
+    Constraint constraint=null;
     
     /** How many nodes the grid on the entire cube has. (Not all of them may
 	satisfy the constraint, so the actual number of nodes over which 

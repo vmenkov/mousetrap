@@ -17,7 +17,7 @@ public class ParametrizedMatrix  {
 	    apos = apos0;
 	    aptr =   arrayStructureCopy(w,  Symmetry.NONE);
 	    for(int k=0; k<w.length; k++) {
-		HashSet<Integer> h = new HashSet<Integer>();
+		int con[] = new int[w[k].length-1], conp=0;
 		for(int i=0; i<w[k].length; i++) {
 		    int a1 = sym.lookup( w,  aptr, k, i);
 		    if (w[k][i] == k) {
@@ -25,13 +25,13 @@ public class ParametrizedMatrix  {
 			aptr[k][i] = Symmetry.REST;
 		    } else if (a1 != Symmetry.NONE)  {	    // use symmetry...
 			aptr[k][i] = a1;
-			h.add(aptr[k][i] );
+			con[conp++] = aptr[k][i];
 		    } else {
 			aptr[k][i] = apos ++;
-			h.add(aptr[k][i] );
+			con[conp++] = aptr[k][i];
 		    }
 		}		
-		mc.addSimplexConstraintIfUnique(h);
+		mc.addSimplexConstraintIfUnique(con);
 
 	    }
 	}
@@ -87,7 +87,7 @@ public class ParametrizedMatrix  {
 		if (diagPos==Symmetry.NONE) throw new  IllegalArgumentException("No diagonal value found for k="+k);
 		a[k][diagPos] = 1.0 - s;
 		if (a[k][diagPos]<0) {
-		    throw new  IllegalArgumentException("Negative diagonal value ("+a[k][diagPos]+") computed for k="+k);
+		    throw new IllegalArgumentException("Negative diagonal value ("+a[k][diagPos]+") computed for k="+k );
 		}
 	    }
 	    return a;
@@ -101,8 +101,15 @@ public class ParametrizedMatrix  {
 	MatrixData(ParametrizedMatrix mi, double [] q) {
 	    w = mi.w;
 	    if (q.length != mi.nvar) throw new IllegalArgumentException("var cnt mismatch");
-	    aUnseen =  fillData(mi.aposUnseen, q);
-	    aSeen   =  fillData(mi.aposSeen, q);
+	    try {
+		aUnseen =  fillData(mi.aposUnseen, q);
+		aSeen   =  fillData(mi.aposSeen, q);
+	    } catch (IllegalArgumentException ex) {
+		System.out.println("-----------------------------------------------------------\n"+
+				   "Error context: mi=\n" + mi +
+				   "\n,q=" + Arrays.toString(q));
+		throw ex;
+	    }
 	}
 
 	/** @param s aUnseen[][] or aSeen[][] */
@@ -156,7 +163,7 @@ public class ParametrizedMatrix  {
 
     /** Displays the matrix structure and the way matrix elements are
 	based on the parameters */
-    static String report(int w[][], int aptr[][], Symmetry sym) {
+    static String report(int w[][], int aptr[][]/*, Symmetry sym*/) {
 	StringBuffer b = new StringBuffer();
 	for(int k=0; k<w.length; k++) {
 	    b.append("[");
@@ -166,6 +173,13 @@ public class ParametrizedMatrix  {
 	    b.append("]\n");
 	}
 	return b.toString();
+    }
+
+
+    public String toString() {
+	return "Unseen:\n" + report(w, aposUnseen) + 
+	    "Seen:\n" + report(w, aposSeen) +
+	    "Constraints:\n" + constraint	    ;
     }
 
     public static class F2ArgPayoff extends F2Arg {
@@ -189,10 +203,10 @@ public class ParametrizedMatrix  {
 	    bScheme = new ParametrizedMatrix(mo.w2, sym);
 
 	    System.out.println("Player A parametrization map:");
-	    System.out.println( report(mo.w, aScheme.aposUnseen, sym));
+	    System.out.println( report(mo.w, aScheme.aposUnseen));
 
 	    System.out.println("Player B parametrization map:");
-	    System.out.println( report(mo.w2, bScheme.aposUnseen, sym));
+	    System.out.println( report(mo.w2, bScheme.aposUnseen));
 
 	}
 

@@ -5,7 +5,7 @@ import java.util.*;
 /** Represents a set of linear constraints. Each one of them may be
     of any form supported by the Constraint interface.
 */
-public class MultiConstraint implements Constraint {
+public class MultiConstraint extends Constraint {
     /** The underlying constraints */
     Vector<Constraint> v = new Vector<Constraint>();
 
@@ -16,27 +16,12 @@ public class MultiConstraint implements Constraint {
 
     /** Adds a new constraint to this MultiConstraint if the new
 	constrain is different from all constraints already in this
-	MultiConstraint. This method assumes that all already included
-	constraints have their variables ordered in ascending order,
-	and it orders the vars in the new constraint in the same way as well.
+	MultiConstraint. This method sorts ind[], and interprets
+	non-unique values as having higher weight.
      */
     void addSimplexConstraintIfUnique(int[] ind) {
-	int z[] = Arrays.copyOfRange(ind, 0, ind.length);
-	Arrays.sort(z);
-	addSimplexConstraintIfUniqueSorted(z);
-    }
-
-    void addSimplexConstraintIfUnique(HashSet<Integer> h) {
-      int z[] = new int[h.size()];
-      int p=0;
-      for(Integer a: h) { z[p++] = a.intValue(); }
-      addSimplexConstraintIfUnique(z);
-    }
-
-    /** Assumes ind[] is sorted */
-    private void addSimplexConstraintIfUniqueSorted(int[] ind) {
-	SingleSparseConstraint c = SingleSparseConstraint.simplex(ind);
-	if (ind.length <= 1) {	
+	SingleSparseConstraint c =  SingleSparseConstraint.simplexWeighted(ind);
+	if (c.isTrivialInCube()) {	
 	    System.out.println("Not adding constraint " + c + ", because it's trivial");
 	    return;
 	}
@@ -90,6 +75,14 @@ public class MultiConstraint implements Constraint {
 	return true;
     }
 
+    public String toString() {
+	StringBuffer s = new StringBuffer("(\n");
+	for(Constraint c: v) {
+	    s.append("" + c + "\n");
+	}
+	s.append(")");
+	return s.toString();  
+    }
 
 }
 
