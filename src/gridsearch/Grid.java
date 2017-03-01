@@ -105,11 +105,21 @@ class Grid {
 	return new ParVec(z);
     }
 
+    public String toString() {
+	StringBuffer s = new StringBuffer("(");
+	s.append("Corners at " + corners[0] + " : " + corners[1]+"\n");
+	s.append("Divided into: "+ Arrays.toString(m) +"\n");
+	s.append("Constraints : "+ constraint);
+   
+	return s.toString();	
+    }
+
+  
+
     ParVecIterator getParVecIterator() {
     	return new ParVecIterator();
     }
-	
-    
+	    
     /** An iterator that generates all points in the mesh */
     class ParVecIterator implements Iterator<ParVec> {
 	/** 0 &le; p[j] &lt; m[j] */
@@ -123,7 +133,7 @@ class Grid {
 	    This flag only matters if finished==false. */
 	private boolean currentPHasBeenUsed=false;
 	
-	Constraint ci = (constraint==null)? null: constraint.constraintInt(Grid.this);
+	final Constraint ci = (constraint==null)? null: constraint.constraintInt(Grid.this);
 
 	ParVecIterator() {
 	    if (!currentPAcceptable()) {
@@ -169,9 +179,6 @@ class Grid {
 	     finished = true;
 	 }
 
-	//	void 	remove() {
-	//	    throw new UnsupportedOperationException();
-	//	}
 
 	
     }

@@ -1,4 +1,4 @@
-package mousetrap;
+package util;
 
 import java.io.*;
 import java.util.*;
@@ -18,7 +18,7 @@ import java.text.*;
  */
 
 public final class ParseConfig extends Hashtable<String,Object> 
-				       //implements OptionAccess 
+				       //       implements OptionAccess
 {
 	final static String prefix = ""; // "Ant."
 

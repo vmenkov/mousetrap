@@ -2,8 +2,10 @@ package gridsearch;
 
 import java.util.Arrays;
 
+/** A ParVec instance represents an element of a vector space. */
 public class ParVec {
     private double [] x;
+    /** The dimension of the vector */
     public int dim() { return x.length; }
     public double x(int i) { return x[i]; }
     public double[] getX() { return x;}

@@ -2,24 +2,57 @@ package gridsearch;
 
 import java.io.*;
 import java.util.*;
+
 import mousetrap.*;
+import util.ParseConfig;
+
 
 /** Tools to convert a parameter vector (from the space over which we optimize)
-    to an actual matrix */
+    to an actual matrix.
+
+    A ParametrizedMatrix object contains information about the
+    transition matrix structure and the way the matrix elements can be
+    reconstructed from a specified set of parameters. The matrix
+    structure is represented by array w[][], with exactly the same
+    semantics as in the Mousetrap class: w[j][] lists graph nodes that
+    a player can reach in one step from node j. The parametrization
+    mapping is in aposUnseen[][] and aposSeen[][]. Elements in
+    aposUnseen[j][] contain the numeric IDs of parameters that control
+    the matrix lements (transition probabilities) for transitions
+    corresponding to w[j][], when the players have not seen each other
+    at the previous step; elements in aposSeen[j][] are the parameter
+    indexes for the matrix elements describing transition
+    probabilities when the players have seen each other.
+   
+ */
 public class ParametrizedMatrix  {
 
+    static String sepline = "------------------------------------------------------------------------";
+
+    /** An auxiliary class, used to package the resuts of one of the steps
+	of creating the parametrization map. 
+    */
     private static class AsgMap {
 	int [][] aptr;
 	int apos;
 
-	/** Fills aptr[][]; adds constraints to mc */
+	/** Figures out how many new parameters are needed to describe
+	a transition matrix with the sparsity pattern described by
+	w[][]. Fills aptr[][], and adds constraints to mc. 
+	@param sym The symmetry rules for the matrix. May be null (for no rules).
+	@param apos0 How many parameters have already been used. The numbering
+	of new parameters will start with this number.
+	@param mc Will add new constraints (describing rules for new parameters)
+	to this constraint set.
+	*/
 	AsgMap(int w[][], Symmetry sym, int apos0, MultiConstraint mc) {
 	    apos = apos0;
 	    aptr =   arrayStructureCopy(w,  Symmetry.NONE);
 	    for(int k=0; k<w.length; k++) {
 		int con[] = new int[w[k].length-1], conp=0;
 		for(int i=0; i<w[k].length; i++) {
-		    int a1 = sym.lookup( w,  aptr, k, i);
+		    int a1 = (sym==null)? Symmetry.NONE: 
+			sym.lookup( w,  aptr, k, i);
 		    if (w[k][i] == k) {
 			// the diagonal element = 1 - sum(others)
 			aptr[k][i] = Symmetry.REST;
@@ -51,9 +84,10 @@ public class ParametrizedMatrix  {
 	w = _w;
 	MultiConstraint mc = new MultiConstraint();
 
+	System.out.println(sepline);
 	System.out.println("Building map for unseen, start apos=0");
 	AsgMap map1 = new AsgMap(w, sym, 0, mc);
-	System.out.println("Building map for unseen, start apos=" + map1.apos);
+	System.out.println("Building map for seen, start apos=" + map1.apos);
 	AsgMap map2 = new AsgMap(w, sym, map1.apos, mc);
 	aposUnseen = map1.aptr;
 	aposSeen   = map2.aptr;
@@ -61,13 +95,18 @@ public class ParametrizedMatrix  {
 	constraint = mc;
     }
 
-    /** An object of this class describes an actual transition matrix for 
-	one player */
+    /** An object of this class describes an actual pair of transition
+	matrix for one player */
     static class MatrixData {
 	final int[][] w;
 	/** Sparse matrices whose structure (by column) is described by w[][] */
 	double [][]  aUnseen, aSeen;
 
+	/** Fills one transition matrix ("unseen" or "seen").
+	    @param q parameter values
+	    @param apos the map that explains how matrix elements are
+	    computed from the parameters
+	 */
 	private static double[][] fillData(final int apos[][], double [] q) {
 	    double [][] a = new double[apos.length][];
 	    for(int k=0; k<apos.length; k++) {
@@ -98,18 +137,20 @@ public class ParametrizedMatrix  {
 	    this(mi, qv.getX());
 	}
 
+	/** Fills the matrix based on the assignment map in mi, and
+	    parameter values in q[] */
 	MatrixData(ParametrizedMatrix mi, double [] q) {
 	    w = mi.w;
 	    if (q.length != mi.nvar) throw new IllegalArgumentException("var cnt mismatch");
-	    try {
+	    //	    try {
 		aUnseen =  fillData(mi.aposUnseen, q);
 		aSeen   =  fillData(mi.aposSeen, q);
-	    } catch (IllegalArgumentException ex) {
-		System.out.println("-----------------------------------------------------------\n"+
+		/*} catch (IllegalArgumentException ex) {
+		  System.out.println(sepline+"\n"+
 				   "Error context: mi=\n" + mi +
 				   "\n,q=" + Arrays.toString(q));
 		throw ex;
-	    }
+		}*/
 	}
 
 	/** @param s aUnseen[][] or aSeen[][] */
@@ -163,7 +204,7 @@ public class ParametrizedMatrix  {
 
     /** Displays the matrix structure and the way matrix elements are
 	based on the parameters */
-    static String report(int w[][], int aptr[][]/*, Symmetry sym*/) {
+    static String report(int w[][], int aptr[][]) {
 	StringBuffer b = new StringBuffer();
 	for(int k=0; k<w.length; k++) {
 	    b.append("[");
@@ -175,9 +216,11 @@ public class ParametrizedMatrix  {
 	return b.toString();
     }
 
-
+   
     public String toString() {
-	return "Unseen:\n" + report(w, aposUnseen) + 
+	return 
+	    "(" + nvar + " parameters)\n" +
+	    "Unseen:\n" + report(w, aposUnseen) + 
 	    "Seen:\n" + report(w, aposSeen) +
 	    "Constraints:\n" + constraint	    ;
     }
@@ -202,12 +245,12 @@ public class ParametrizedMatrix  {
 	    aScheme = new ParametrizedMatrix(mo.w, sym);
 	    bScheme = new ParametrizedMatrix(mo.w2, sym);
 
+	    System.out.println(sepline);
 	    System.out.println("Player A parametrization map:");
-	    System.out.println( report(mo.w, aScheme.aposUnseen));
+	    System.out.println(aScheme);
 
 	    System.out.println("Player B parametrization map:");
-	    System.out.println( report(mo.w2, bScheme.aposUnseen));
-
+	    System.out.println(bScheme);
 	}
 
 	double f(ParVec alpha, ParVec beta) {
@@ -232,16 +275,13 @@ public class ParametrizedMatrix  {
 	}
 
 	double f_longTerm(ParVec alpha, ParVec beta) {
-	    if (callsTotal % 10000 ==0) {
-		System.out.println(statsReport());
-	    }
-
+	    //if (callsTotal % 1000000 ==0) System.out.println(statsReport());
 
 	    callsTotal++;
 	    MatrixData amat = new MatrixData(aScheme, alpha);
 	    MatrixData bmat = new MatrixData(bScheme, beta);
 
-	    final int maxT = 100;
+	    final int maxT = 2000;
 	    int t=0;
 	    double r, r0=0;
 	    JointProbVector jpv = jpv0;
@@ -270,42 +310,9 @@ public class ParametrizedMatrix  {
 	    return r;
 
 	}
-
-
     }
 
-    /** The function being optimized is the payoff for the defender (i.e. the
-	second player). Thus we go for min_A max_B  and max_B min_A
-    */
-    static public void main(String [] argv) {
-	Mousetrap2 mo = Mousetrap2.mo1();
-	//Mousetrap2 mo = Mousetrap2.moChain(4, false, 1, 1);
-
-
-	Symmetry sym = Symmetry.mirror(mo.h);
-	JointProbVector jpv = new JointProbVector(mo.h);
-	int startPoint = mo.h/2;
-	jpv.xUnseen[startPoint][startPoint] = 1.0;  // both players start at the center point
-
-	PrintStream out = System.out;
-	out.println("MODEL " + mo.modelName);
-	out.println("Defender's efficiency phi="+ mo.phi);
-	out.println("Attacker's allowed movement map:");
-	out.println(mo.wMatrixToString(mo.w));
-	out.println("Defender's allowed movement map:");
-	out.println(mo.wMatrixToString(mo.w2));
-
-	F2ArgPayoff test  = new F2ArgPayoff(mo, sym, jpv, true);
-
-	int dim[] = { test.aScheme.nvar, test.bScheme.nvar};
-	Constraint cons[] = {test.aScheme.constraint, test.bScheme.constraint};
-
-	F2Arg.Res res = test.findSaddlePoint(dim, cons, F2Arg.LookFor.MIN, 0);
-	System.out.println(test.statsReport());
-
-	out.println("A=mouse, B=cat");
-	out.println("min_a max_b at: " + res);
-
+    private static void reportResults(PrintStream out, Mousetrap2 mo, F2ArgPayoff test, F2Arg.Res res) {
 	String[] labels = {"A", "B"};
 	for(int l=0; l<2; l++) {
 	    MatrixData amat = new MatrixData(test.schemes()[l], res.ab[l]);
@@ -313,6 +320,88 @@ public class ParametrizedMatrix  {
 	    out.println(labels[l] + ".unseen=\n" + mo.matrixToString(z[0]));
 	    out.println(labels[l] + ".seen  =\n" + mo.matrixToString(z[1]));
 	}
+    }
+
+
+    /** The function being optimized is the payoff for the defender (i.e. the
+	second player). Thus we go for min_A max_B  and max_B min_A
+    */
+    static public void main(String [] argv) {
+	PrintStream out = System.out;
+	ParseConfig ht = new ParseConfig();
+	F2Arg.initParams(ht);
+	out.println(sepline);
+	out.println(F2Arg.params);
+
+
+	int h =ht.getOption("graph.h", 3);
+	boolean cyclic =ht.getOption("graph.cyclic", false);
+	if (h<3) throw new IllegalArgumentException("h=" + h + "; need h>=3");
+
+	out.println(sepline);
+	out.println("Creating " + (cyclic? "cyclic" : "linear") + " graph with " + h + " nodes");
+	Mousetrap2 mo = (h==3 && !cyclic) ? Mousetrap2.mo1() :
+	    Mousetrap2.moChain(4, cyclic, 1, 1);
+
+	boolean dosym = ht.getOption("graph.sym", true);
+
+	Symmetry sym = dosym? Symmetry.mirror(mo.h) : null;
+	
+	JointProbVector jpv = new JointProbVector(mo.h);
+	int startPoint = mo.h/2;
+	jpv.xUnseen[startPoint][startPoint] = 1.0;  // both players start at the center point
+
+	out.println(sepline);
+	out.println("MODEL " + mo.modelName);
+	out.println("Defender's efficiency phi="+ mo.phi);
+	out.println("Attacker's allowed movement map:");
+	out.println(mo.wMatrixToString(mo.w));
+	out.println("Defender's allowed movement map:");
+	out.println(mo.wMatrixToString(mo.w2));
+
+	out.println(sepline);
+	out.println("Solutions' required symmetry: " + sym);
+
+
+	F2ArgPayoff test  = new F2ArgPayoff(mo, sym, jpv, true);
+
+	int dim[] = { test.aScheme.nvar, test.bScheme.nvar};
+	Constraint cons[] = {test.aScheme.constraint, test.bScheme.constraint};
+
+	//------------------------- 
+	F2Arg.Res res1 = test.findSaddlePoint(dim, cons, F2Arg.LookFor.MIN, 0);
+	System.out.println(test.statsReport());
+
+	out.println(sepline);
+	out.println("A=mouse, B=cat");
+	out.println("min_a max_b f(a,b) = f(a1, b1), at\n" + res1);
+	reportResults(out,  mo, test,  res1);
+
+/*
+	F2Arg.Res resRev = 
+	    test.optimizeOverOneVar(res1.ab[1],cons[0],dim[0],F2Arg.LookFor.MIN, 0);
+	out.println("Reverse: if we fix the above B strategy (b1), and look for min_a f(a, b1), the results are:\n" + resRev);
+*/
+	
+	//------------------------- 
+	F2Arg.Res res2 = test.findSaddlePoint(dim, cons, F2Arg.LookFor.MAX, 1);
+	System.out.println(test.statsReport());
+
+	out.println(sepline);
+	out.println("A=mouse, B=cat");
+	out.println("max_b min_a  = f(a2, b2), at:\n" + res2);
+	reportResults(out,  mo, test,  res2);
+
+	/*
+	resRev = 
+	    test.optimizeOverOneVar(res2.ab[0],cons[1],dim[1],F2Arg.LookFor.MAX, 1);
+	out.println("Reverse: if we fix the above A strategy (a2), and look for max_b f(a2, b), the results are:\n" + resRev);
+	*/
+
+	//------------------------- a1,b2
+	
+	double fCombo = test.f(res1.ab[0], res2.ab[1]);
+	out.println("Combination result: f(a1,b2) = " + fCombo);
 
     }
 

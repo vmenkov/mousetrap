@@ -4,6 +4,9 @@ import java.util.*;
 import java.text.*;
 import java.io.*;
 
+import util.ParseConfig;
+
+
 /** Cat and Mouse simulation for Paul Kantor. An instance of this 
     class describes a particular geometry. The two players are 
     described as "constrained" and "mobile".

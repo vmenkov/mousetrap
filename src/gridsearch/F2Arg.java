@@ -1,6 +1,7 @@
 package gridsearch;
 
 import java.util.*;
+import util.*;
 
 /** Class used for grid-based minimax optimization of an arbitrary
     function of two arguments. The arguments are of the ParVec type.
@@ -26,8 +27,27 @@ abstract class F2Arg {
 	LookFor other()  { return min()? MAX: MIN; }
     };
 
+    /** Parameters controlling the grid search computational optimization. The default values can be overridden by initParams()
+     */
+    static class Parameters {
+	int mfactor = 3; //10;
+	int maxlevel = 4;
+	public String toString() {
+	    return "Gridsearch parameters: range is divided into mfactor=" + mfactor + " sections at each level; total of " + maxlevel + " levels";
+	}
+    }
 
-    static boolean debug = true;
+    static Parameters params = new Parameters();
+
+    /** Sets parameter values from command line options.
+	@param ht Represents command-line options (-Dname=value)
+    */
+    static void initParams(ParseConfig ht) {
+	params.mfactor = ht.getOption("grid.mfactor", params.mfactor);
+	params.maxlevel = ht.getOption("grid.maxlevel", params.maxlevel);	
+    }
+
+    static boolean debug = false;//true;
     /** When a finer grid is created, how many cells of the coarser grid, in
 	each direction, does it create? */
     static final int L=1;
@@ -39,11 +59,8 @@ abstract class F2Arg {
 	@return The values of arguments at which the min or max is reached, and the function value at them.
      */
     Res optimizeOverOneVar(ParVec fixedPar, Constraint cons, int dim, LookFor lookFor, int minOver) {
-	final int mfactor = 3; //10;
-	final int maxlevel = 4;
-	//	Constraint cons=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
-	Grid g = Grid.cubeGrid(dim, mfactor, cons);
-	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, mfactor, maxlevel);	
+	Grid g = Grid.cubeGrid(dim, params.mfactor, cons);
+	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, params.mfactor, params.maxlevel);	
     }
 
     /** @param minOver which param one varies? 0 alpha, 1 beta. The other is fixed.
@@ -56,17 +73,14 @@ abstract class F2Arg {
 	    Res best = null;
 	    for(Iterator<ParVec> it = g.getParVecIterator(); it.hasNext(); ){
 
-
-
-
-
-
 		ParVec[] args = new ParVec[2];
 		args[ 1-minOver ] = fixedPar;
 		args[ minOver ] = it.next();
 
-		if (!g.constraint.holds(args[ minOver ])) {
-		    System.out.println("Error context:\ngrid=\n" +g +"\npoint=" + args[ minOver ]);
+		if (debug && !g.constraint.holds(args[ minOver ])) {
+		    System.out.println("Error context:\ngrid=\n" +g +
+				       "\nit.ci=" + ((Grid.ParVecIterator)it).ci + 
+				       "\npoint=" + args[ minOver ]);
 		    throw new IllegalArgumentException("Iterator over the grid produced a point value that does not satisfy the constraint");
 		}
 
@@ -84,21 +98,17 @@ abstract class F2Arg {
 	}
     }
 
-    /** @param dimnension (for the two arguments of f[])
-	@param outerLookFor:  the outer optimization is min or max
-	@param outerMinOver: the outer optimization is for variable 0 or 1
+    /** Finds the min max or max min of a function of 2 arguments.
+	@param dim (for the two arguments of f[])
+	@param cons Geometrical constraints for the two domains
+	@param outerLookFor: the outer optimization is min or max
+	@param outerMinOver: the outer optimization is for variable 0 or 1 (i.e. min_{x[0]} max_{x[1]} or max_{x[1]} min_{x[0]} 
      */
-    Res findSaddlePoint( //boolean simplex, 
-			int[] dim, Constraint cons[], 
+    Res findSaddlePoint(int[] dim, Constraint cons[], 
 			LookFor outerLookFor, int outerMinOver) {       
 	if (cons==null) cons = new Constraint[2];
 
-	final int mfactor = 3; //10;
-	final int maxlevel = 4;
-
-	//Constraint cons=simplex? SingleConstraint.simplex(dim) :null;
-
-	Grid og = Grid.cubeGrid(dim[outerMinOver], mfactor, cons[outerMinOver]);
+	Grid og = Grid.cubeGrid(dim[outerMinOver], params.mfactor, cons[outerMinOver]);
 	final int inner  = 1 - outerMinOver;
 
 	for(int level = 0; ; level++) {
@@ -106,9 +116,7 @@ abstract class F2Arg {
 	    Res best = null;
 	    for(Iterator<ParVec> it = og.getParVecIterator(); it.hasNext(); ){
 		ParVec fixedPar = it.next();
-
-		//		Constraint cons2=simplex? SingleConstraint.simplex(fixedPar.dim()) :null;
-
+	
 		Res r = optimizeOverOneVar(fixedPar, cons[inner], dim[inner], outerLookFor.other(), inner);
 		
 		//if (debug) System.out.println(r);
@@ -118,8 +126,8 @@ abstract class F2Arg {
 	    if (debug) System.out.println("Outer level=" + level + ", " +
 				      outerLookFor + " at " + best);
 				      	
-	    if (level == maxlevel) return best;
-	    og = og.vicinityGrid(best.ab[outerMinOver], mfactor, L);
+	    if (level == params.maxlevel) return best;
+	    og = og.vicinityGrid(best.ab[outerMinOver], params.mfactor, L);
 	}
     }
 

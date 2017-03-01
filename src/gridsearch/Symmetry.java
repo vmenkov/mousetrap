@@ -66,5 +66,21 @@ package gridsearch;
 	    }
 	}
 
-    }
+     public String toString() {
+	 boolean printed[] = new boolean[mapsto.length];
+	 StringBuffer b = new StringBuffer("{");
+	 for(int i=0; i<mapsto.length; i++) {
+	     if (printed[i]) continue;
+	     if (mapsto[i]==NONE) b.append(" ("+i+")");
+	     else {
+		 b.append(" ("+i+" : "+mapsto[i]+")");
+		 printed[mapsto[i]] = true;
+	     }
+	     printed[i] = true;
+	 }
+	 b.append("}");
+	 return b.toString();
+     }
+
+ }
 

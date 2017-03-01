@@ -94,7 +94,7 @@ class SingleSparseConstraint extends Constraint{
 	for(int i=0; i<aInd.length; i++) {
 	    int k = aInd[i];
 	    if (k>= g.dim()) throw new IllegalArgumentException();
-	    _b -= g.corners[0].x(k);
+	    _b -= aVal[i] * g.corners[0].x(k);
 	    _aVal[i] = aVal[i] * g.cellWidth(k);
 	}
 	SingleSparseConstraint q = new SingleSparseConstraint(aInd, _aVal, _b);
