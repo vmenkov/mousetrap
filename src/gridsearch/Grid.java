@@ -179,7 +179,9 @@ class Grid {
 	     finished = true;
 	 }
 
-
+	 public void remove() throws UnsupportedOperationException {
+	     throw new UnsupportedOperationException();
+	 }
 	
     }
 
