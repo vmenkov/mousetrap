@@ -2,7 +2,6 @@ package gridsearch;
 
 //import java.io.*;
 import java.util.*;
-//import mousetrap.*;
 
     /** A JointProbVector describes the probability distribution over
 	all possible states of the two-player system.  xUnseen[i][j]
@@ -21,6 +20,15 @@ public class JointProbVector {
 	xUnseen = zeroMat(n,n);
 	xSeen = new double[n];
     }
+
+    
+    void setUniformDiagUnseen() {
+	double r = 1.0 / xUnseen.length;
+ 	for(int i=0; i< xUnseen.length; i++) {
+	    xUnseen[i][i] = r;
+	}
+   }
+    
 
     /** Checks if the values sum to 1.0 (within a computational error) 
      */

@@ -235,15 +235,21 @@ public class ParametrizedMatrix  {
 	}
 
 	final boolean ev;
+	final int maxT;
 
+	/**
+	   @param ev If true, measure long-term payoff, rather than 1-step immediate payoff
+	 */
 	F2ArgPayoff(Mousetrap2 mo, Symmetry sym, 
-		    JointProbVector _jpv0, boolean _ev) {
+		    JointProbVector _jpv0, boolean _ev, int _maxT) {
 	    ev = _ev;
+	    maxT = _maxT;
 	    phi = mo.phi;
 	    jpv0 = _jpv0;
 	    jpv0.validate();
 	    aScheme = new ParametrizedMatrix(mo.w, sym);
 	    bScheme = new ParametrizedMatrix(mo.w2, sym);
+	    
 
 	    System.out.println(sepline);
 	    System.out.println("Player A parametrization map:");
@@ -281,15 +287,16 @@ public class ParametrizedMatrix  {
 	    MatrixData amat = new MatrixData(aScheme, alpha);
 	    MatrixData bmat = new MatrixData(bScheme, beta);
 
-	    final int maxT = 2000;
+	    final int avgT = 10; // averaging interval
 	    int t=0;
-	    double r, r0=0;
+	    double r=0, r0=0;
 	    JointProbVector jpv = jpv0;
 	    while(true) {
 		t++;
 		jpv = jpv.apply(amat, bmat, phi);		
-		r = jpv.sumSeen() / (jpv.sumSeen() + jpv.sumUnseen());
-		if (Double.isInfinite(r)) {
+		double sumSeen = jpv.sumSeen(), sumUnseen = jpv.sumUnseen();
+		double ratio = sumSeen / (sumSeen + sumUnseen);
+		if (Double.isInfinite(ratio)) {
 		    System.out.println("Infinity encountered: t=" + t+", jpv.sumSeen() = " + jpv.sumSeen() + ", jpv.sumUnseen()=" + jpv.sumUnseen());
 		    System.out.println("jpv=" + jpv);
 		    System.out.println("amat=" + amat);
@@ -297,17 +304,33 @@ public class ParametrizedMatrix  {
 		    
 		    throw new IllegalArgumentException();
 		}
-		if (t>1) {
-		    if (Math.abs(r-r0) < 1e-4) break;
+
+		final double eps=1e-4;
+
+		if (avgT==1) {
+		    r = ratio;
+		    if (t>1) {		    		    
+			if (Math.abs(r-r0) < eps) break;
+		    }
 		    r0 = r;
+		} else {
+		    r += ratio;
+		    if (t % avgT == 0) {
+			if (t / avgT > 1) {
+			    if (Math.abs(r-r0) < eps*avgT) break;
+			}
+			r0 = r;
+			r = 0;
+		    }
 		}
-		if (t>maxT) {
+		
+		if (t/avgT>1 && t>maxT) {
 		    callsNoConv ++;
 		    break;
 		}
 	    }
 	    tTotal += t;
-	    return r;
+	    return r / avgT;
 
 	}
     }
@@ -333,6 +356,10 @@ public class ParametrizedMatrix  {
 	out.println(sepline);
 	out.println(F2Arg.params);
 
+	out.println(sepline);
+	int maxT = ht.getOption("f.T", 2000);
+	boolean ev = ht.getOption("f.ev", true);
+
 
 	int h =ht.getOption("graph.h", 3);
 	boolean cyclic =ht.getOption("graph.cyclic", false);
@@ -346,10 +373,23 @@ public class ParametrizedMatrix  {
 	boolean dosym = ht.getOption("graph.sym", true);
 
 	Symmetry sym = dosym? Symmetry.mirror(mo.h) : null;
+
+	out.println(sepline);
+	out.println("Optimizing for " +
+		    (ev?"long-term payoff with T=" + maxT: "immediate payoff"));
+
 	
 	JointProbVector jpv = new JointProbVector(mo.h);
-	int startPoint = mo.h/2;
-	jpv.xUnseen[startPoint][startPoint] = 1.0;  // both players start at the center point
+	final boolean uniform =  ht.getOption("f.uniform", true);;
+	if (uniform) {
+	    // both players start at the same point... equal prob for any such point
+	    jpv.setUniformDiagUnseen();
+	    out.println("The two players start at the same random position");
+	} else {
+	    int startPoint = mo.h/2;
+	    jpv.xUnseen[startPoint][startPoint] = 1.0;  // both players start at the center point
+	    out.println("The two players start at position " + startPoint);
+	}
 
 	out.println(sepline);
 	out.println("MODEL " + mo.modelName);
@@ -363,7 +403,7 @@ public class ParametrizedMatrix  {
 	out.println("Solutions' required symmetry: " + sym);
 
 
-	F2ArgPayoff test  = new F2ArgPayoff(mo, sym, jpv, true);
+	F2ArgPayoff test  = new F2ArgPayoff(mo, sym, jpv, ev, maxT);
 
 	int dim[] = { test.aScheme.nvar, test.bScheme.nvar};
 	Constraint cons[] = {test.aScheme.constraint, test.bScheme.constraint};
