@@ -56,21 +56,33 @@ abstract class F2Arg {
 	@param fixedPar This variable stays constant
 	@param minOver This is the variable we optimize over
 	@param lookFor Look for min or max?
+	@param hints If not null, this parameter tells us that sometimes there is no need to optimize beyond a certain point in the inner loop of max_a min_b. The inner loop can return at once if it knows that its "winner" won't be as good at the winner-so-far of the outer loop.
 	@return The values of arguments at which the min or max is reached, and the function value at them.
      */
-    Res optimizeOverOneVar(ParVec fixedPar, Constraint cons, int dim, LookFor lookFor, int minOver) {
+    Res optimizeOverOneVar(ParVec fixedPar, Constraint cons, int dim, LookFor lookFor, int minOver, Hints hints) {
 	Grid g = Grid.cubeGrid(dim, params.mfactor, cons);
-	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, params.mfactor, params.maxlevel);	
+	return optimizeOverOneVarLoop(fixedPar, g, lookFor, minOver, params.mfactor, params.maxlevel, hints);	
     }
 
     /** @param minOver which param one varies? 0 alpha, 1 beta. The other is fixed.
 	@param lookFor Does "optimize" mean "minimize" or "maximize"? 
      */
-    private Res optimizeOverOneVarLoop(ParVec fixedPar, Grid g, LookFor lookFor, int minOver, int mfactor, int maxlevel) {
+    private Res optimizeOverOneVarLoop(ParVec fixedPar, Grid g, LookFor lookFor, int minOver, int mfactor, int maxlevel, Hints hints) {
+
+	Res best = null;
+
+	if (hints!=null && hints.bestSaddleSoFar!=null) {
+	    ParVec[] args = new ParVec[2];
+	    args[ 1-minOver ] = fixedPar;
+	    args[ minOver ] = hints.bestSaddleSoFar.ab[minOver];
+	    double val = f(args);
+	    best=new Res(args,val);
+	    if (hints.willNotWin(val)) return best;
+	}
+
 
 	for(int level = 0; ; level++) {
 
-	    Res best = null;
 	    for(Iterator<ParVec> it = g.getParVecIterator(); it.hasNext(); ){
 
 		ParVec[] args = new ParVec[2];
@@ -88,15 +100,44 @@ abstract class F2Arg {
 		double val = f(args);
 		//if (debug) System.out.println("f("+args[minOver]+")=" + val);
 		if (best == null ||
-		    (lookFor.min()? val<best.val : val>best.val)) best=new Res(args,val);
+		    (lookFor.min()? val<best.val : val>best.val)) {
+		    best=new Res(args,val);
+		    if (hints!=null && hints.willNotWin(val)) return best;
+		}
+	       
+
 	    }
-	    	    if (debug) System.out.println("At level=" + level + ", " +
-	    				      lookFor + " at " + best);
+	    if (debug) System.out.println("At level=" + level + ", " +
+					  lookFor + " at " + best);
 				      	
 	    if (level == maxlevel) return best;
 	    g = g.vicinityGrid(best.ab[minOver], mfactor, L);
 	}
     }
+
+    /** This is used to short-circuit computations in the inner loop
+	(e.g.  "Min_b" in "Max_a Min_b", if we know that the result of
+	the inner loop ("Min_b") won't be as good as the best outer loop
+	result (the "Max_a" so far).
+     */
+    static class Hints {
+	Res bestSaddleSoFar;
+	LookFor innerLookFor;
+	Hints(Res r, LookFor _innerLookFor) {
+	    bestSaddleSoFar = r;
+	    innerLookFor = _innerLookFor;
+	}
+	/** This inner loop (say, for min_b) won't beat the current max_a min_b,
+	    because we know that the current min_b will be smaller than the
+	    currently found max_a
+	 */
+	boolean willNotWin(double f) {
+	    if (bestSaddleSoFar==null) return false;
+	    return (innerLookFor==LookFor.MIN) ? 
+		f <= bestSaddleSoFar.val : f >= bestSaddleSoFar.val;
+	}
+    }
+
 
     /** Finds the min max or max min of a function of 2 arguments.
 	@param dim (for the two arguments of f[])
@@ -110,18 +151,20 @@ abstract class F2Arg {
 
 	Grid og = Grid.cubeGrid(dim[outerMinOver], params.mfactor, cons[outerMinOver]);
 	final int inner  = 1 - outerMinOver;
-
+	Res best = null;
+	final LookFor innerLookFor =  outerLookFor.other();
+		
 	for(int level = 0; ; level++) {
 
-	    Res best = null;
 	    for(Iterator<ParVec> it = og.getParVecIterator(); it.hasNext(); ){
 		ParVec fixedPar = it.next();
 	
-		Res r = optimizeOverOneVar(fixedPar, cons[inner], dim[inner], outerLookFor.other(), inner);
+		Hints hints = new Hints(best, innerLookFor);
+		Res r = optimizeOverOneVar(fixedPar, cons[inner], dim[inner], innerLookFor, inner, hints);
 		
 		//if (debug) System.out.println(r);
 		if (best == null ||
-		    (outerLookFor.min()? r.val<best.val: r.val>best.val)) best=r;
+		    (outerLookFor.min()?r.val<best.val: r.val>best.val)) best=r;
 	    }
 	    if (debug) System.out.println("Outer level=" + level + ", " +
 				      outerLookFor + " at " + best);

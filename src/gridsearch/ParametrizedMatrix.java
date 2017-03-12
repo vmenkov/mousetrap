@@ -271,7 +271,7 @@ public class ParametrizedMatrix  {
 	    return jpv.sumSeen();
 	}
 
-	int callsTotal=0, callsNoConv=0;
+	long callsTotal=0, callsNoConv=0;
 	long tTotal=0;
 
 	String statsReport() {
@@ -419,7 +419,7 @@ public class ParametrizedMatrix  {
 
 /*
 	F2Arg.Res resRev = 
-	    test.optimizeOverOneVar(res1.ab[1],cons[0],dim[0],F2Arg.LookFor.MIN, 0);
+	    test.optimizeOverOneVar(res1.ab[1],cons[0],dim[0],F2Arg.LookFor.MIN, 0, null);
 	out.println("Reverse: if we fix the above B strategy (b1), and look for min_a f(a, b1), the results are:\n" + resRev);
 */
 	
@@ -434,7 +434,7 @@ public class ParametrizedMatrix  {
 
 	/*
 	resRev = 
-	    test.optimizeOverOneVar(res2.ab[0],cons[1],dim[1],F2Arg.LookFor.MAX, 1);
+	    test.optimizeOverOneVar(res2.ab[0],cons[1],dim[1],F2Arg.LookFor.MAX, 1, null);
 	out.println("Reverse: if we fix the above A strategy (a2), and look for max_b f(a2, b), the results are:\n" + resRev);
 	*/
 

@@ -32,9 +32,9 @@ public class F2ArgTest1 extends F2Arg {
 	for(boolean simplex: ss) {
 	    String lab = simplex? "simplex" : "cube";
 	    Constraint cons=simplex? SingleConstraint.simplex(n) :null;
-	    res = f.optimizeOverOneVar(ParVec.zero(n), cons, n, LookFor.MIN, 1);
+	    res = f.optimizeOverOneVar(ParVec.zero(n), cons, n, LookFor.MIN, 1, null);
 	    System.out.println("Minimized on "+lab+" at: " + res);
-	    res = f.optimizeOverOneVar(ParVec.zero(n), cons, n, LookFor.MAX, 1);
+	    res = f.optimizeOverOneVar(ParVec.zero(n), cons, n, LookFor.MAX, 1, null);
 	    System.out.println("Maximized on "+lab+" at: " + res);
 	}
 
